@@ -8,6 +8,12 @@ ClaudeLauncher 是一个原生 macOS 桌面端工具，用来把 **Claude Code**
 - 对会话进行命名、查看状态、关闭会话
 - 管理会话上下文，而不是只管理终端进程
 
+## 官网与下载
+
+- 官网：`https://cclauncher.chattcy.top`
+- 最新下载：`https://cclauncher.chattcy.top/ClaudeLauncher-1.0.1.dmg`
+- 官网仓库：`https://github.com/1204TMax/claude-launcher-site`
+
 ---
 
 ## 这个项目是做什么的？
