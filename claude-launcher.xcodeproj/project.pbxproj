@@ -9,22 +9,32 @@
 /* Begin PBXBuildFile section */
 		04C64D55B43D152B19B9EA9D /* ClaudeSessionDiscovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDFF998E616C614FE2717EC4 /* ClaudeSessionDiscovery.swift */; };
 		0B8144CF8659C820E1BA3FC5 /* ProfilesWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D72DF3B1F23B243C92FC65AB /* ProfilesWorkspaceView.swift */; };
+		1276708E7A7A2597C0DF2E95 /* InstallIdentityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECFEC4D18CFA03747338D8B9 /* InstallIdentityService.swift */; };
 		25060008F39BFFF9CA0C86CB /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5997E54208B7BD49819E29B9 /* Models.swift */; };
+		25931748CE0A4A5EB00AFD4F /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 73B1786F5731FF094D8C8DA4 /* FirebaseCore */; };
+		4825C7462ACCF1E6481660A3 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 57138ACA016EEAD4C6DD823E /* FirebaseAnalytics */; };
 		55785ABF033FD4CDBF1F9697 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C26A7668EDF5E501805F0AB /* DesignSystem.swift */; };
 		5B6F2DCBC4F4859F6A3870AC /* SessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EEF80D40C95B59DAEE5A22C /* SessionStore.swift */; };
 		6135DDA955760A213AEC42D9 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0947A8942521A93C0F17B476 /* AppModel.swift */; };
 		65BF43C5169FB86B24B0A8EE /* ClaudeLauncherApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 090EC38E54823DD8D1D475DC /* ClaudeLauncherApp.swift */; };
 		7110C0A262306CC24AC18636 /* StartupAutomationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62B743B1A5112014C2BCBFAC /* StartupAutomationCoordinator.swift */; };
+		772189959C1CCF0D84ACA533 /* AnalyticsModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4567ABC701B3F0CCFC48381A /* AnalyticsModels.swift */; };
+		78ACB36E1304FAFED5C9F55B /* AnalyticsQueueStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0800734BF8528A5EBEF79BA8 /* AnalyticsQueueStore.swift */; };
 		7EF938ECDD5AD835782A6833 /* GlobalQuickLaunchBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = C49CDFE337E232A402D23A86 /* GlobalQuickLaunchBar.swift */; };
 		81C4CB9AB75ED83D8612B9EB /* LaunchWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94623FE2C244B668C98D82E1 /* LaunchWorkspaceView.swift */; };
 		8444F14ECB4C933411868DB5 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE4A325C9994299C2B75465F /* RootView.swift */; };
 		872DDD769B55F8326CC36CF4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B3ABBAF8BCC0DAF6C539EF4B /* Assets.xcassets */; };
+		899B6C7704356AF56BCF7E82 /* FirebaseAnalyticsTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B22FF69197A2BF92E96E2258 /* FirebaseAnalyticsTransport.swift */; };
+		9151B23B5264D49CFDA61FB5 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 656BF3E03CA50FC3858743F0 /* GoogleService-Info.plist */; };
+		93B7528E9D04907106CB3BED /* AnalyticsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09B17C9BC3E5F2F8653D5AF1 /* AnalyticsService.swift */; };
 		971ACB0330BEFD6CDC60A361 /* ClaudeLauncherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E9CFC0E9ADB2B4C598FD2C3 /* ClaudeLauncherTests.swift */; };
+		C9480F7E53969BAE90F7229C /* AnalyticsStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98C294F0B149D886732C70BD /* AnalyticsStateStore.swift */; };
 		CCAF0DD00C7142EA4CE586CD /* SessionsWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44430D39B318E5A302B584F0 /* SessionsWorkspaceView.swift */; };
 		CD1F35AAF4C32ACFC5C4B6E5 /* PTYSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = C18FE8631E92CC582ABACA48 /* PTYSession.swift */; };
 		DC14695FB98209B04EEE3F5C /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE5718A43BCEF928D2C8B120 /* KeychainService.swift */; };
 		DEB2B14087BDDA2CE41F647C /* LaunchCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C86B599C8E9FA948D134F9CB /* LaunchCoordinator.swift */; };
 		E64E464B0848B4188CEED00D /* AppShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26B2A6BA974E32F2E1686BF1 /* AppShellView.swift */; };
+		ED24F535E3B6A4E55D6237A8 /* AnalyticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2277EF944EE2D82C7ECFC7AA /* AnalyticsTests.swift */; };
 		F5143357A93844EA062D692F /* ProfileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF7C193AB70EADA32D40FE03 /* ProfileStore.swift */; };
 		FB062510A987709EC7E59477 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7589F302C58D6B36D830C5C9 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
@@ -41,17 +51,24 @@
 
 /* Begin PBXFileReference section */
 		0569F63AD2426F480D4EABAC /* ClaudeLauncherTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ClaudeLauncherTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		0800734BF8528A5EBEF79BA8 /* AnalyticsQueueStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsQueueStore.swift; sourceTree = "<group>"; };
 		090EC38E54823DD8D1D475DC /* ClaudeLauncherApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeLauncherApp.swift; sourceTree = "<group>"; };
 		0947A8942521A93C0F17B476 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		09B17C9BC3E5F2F8653D5AF1 /* AnalyticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsService.swift; sourceTree = "<group>"; };
 		1EEF80D40C95B59DAEE5A22C /* SessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStore.swift; sourceTree = "<group>"; };
+		2277EF944EE2D82C7ECFC7AA /* AnalyticsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsTests.swift; sourceTree = "<group>"; };
 		26B2A6BA974E32F2E1686BF1 /* AppShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShellView.swift; sourceTree = "<group>"; };
 		44430D39B318E5A302B584F0 /* SessionsWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionsWorkspaceView.swift; sourceTree = "<group>"; };
+		4567ABC701B3F0CCFC48381A /* AnalyticsModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsModels.swift; sourceTree = "<group>"; };
 		4E9CFC0E9ADB2B4C598FD2C3 /* ClaudeLauncherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeLauncherTests.swift; sourceTree = "<group>"; };
 		5997E54208B7BD49819E29B9 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		5C26A7668EDF5E501805F0AB /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		62B743B1A5112014C2BCBFAC /* StartupAutomationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupAutomationCoordinator.swift; sourceTree = "<group>"; };
+		656BF3E03CA50FC3858743F0 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		7589F302C58D6B36D830C5C9 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		94623FE2C244B668C98D82E1 /* LaunchWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchWorkspaceView.swift; sourceTree = "<group>"; };
+		98C294F0B149D886732C70BD /* AnalyticsStateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsStateStore.swift; sourceTree = "<group>"; };
+		B22FF69197A2BF92E96E2258 /* FirebaseAnalyticsTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseAnalyticsTransport.swift; sourceTree = "<group>"; };
 		B3ABBAF8BCC0DAF6C539EF4B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		BDFF998E616C614FE2717EC4 /* ClaudeSessionDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeSessionDiscovery.swift; sourceTree = "<group>"; };
 		BE4A325C9994299C2B75465F /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
@@ -61,8 +78,21 @@
 		C86B599C8E9FA948D134F9CB /* LaunchCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchCoordinator.swift; sourceTree = "<group>"; };
 		CDF367D6B30680C0DDFFF8F3 /* ClaudeLauncher.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClaudeLauncher.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D72DF3B1F23B243C92FC65AB /* ProfilesWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilesWorkspaceView.swift; sourceTree = "<group>"; };
+		ECFEC4D18CFA03747338D8B9 /* InstallIdentityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallIdentityService.swift; sourceTree = "<group>"; };
 		FF7C193AB70EADA32D40FE03 /* ProfileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		DEB3367A3B07760B39BA296B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4825C7462ACCF1E6481660A3 /* FirebaseAnalytics in Frameworks */,
+				25931748CE0A4A5EB00AFD4F /* FirebaseCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		07D2F68894E59F2CB09531E9 /* Shell */ = {
@@ -78,6 +108,7 @@
 		1F08B150E5560FC66E8C954F /* Domain */ = {
 			isa = PBXGroup;
 			children = (
+				4567ABC701B3F0CCFC48381A /* AnalyticsModels.swift */,
 				5997E54208B7BD49819E29B9 /* Models.swift */,
 			);
 			path = Domain;
@@ -122,6 +153,7 @@
 		6051769493691A2A72556306 /* ClaudeLauncherTests */ = {
 			isa = PBXGroup;
 			children = (
+				2277EF944EE2D82C7ECFC7AA /* AnalyticsTests.swift */,
 				4E9CFC0E9ADB2B4C598FD2C3 /* ClaudeLauncherTests.swift */,
 			);
 			path = ClaudeLauncherTests;
@@ -158,6 +190,7 @@
 			children = (
 				7589F302C58D6B36D830C5C9 /* Assets.xcassets */,
 				090EC38E54823DD8D1D475DC /* ClaudeLauncherApp.swift */,
+				656BF3E03CA50FC3858743F0 /* GoogleService-Info.plist */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -165,8 +198,13 @@
 		AC960CF0EA3E2DF39CC68494 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				0800734BF8528A5EBEF79BA8 /* AnalyticsQueueStore.swift */,
+				09B17C9BC3E5F2F8653D5AF1 /* AnalyticsService.swift */,
+				98C294F0B149D886732C70BD /* AnalyticsStateStore.swift */,
 				0947A8942521A93C0F17B476 /* AppModel.swift */,
 				BDFF998E616C614FE2717EC4 /* ClaudeSessionDiscovery.swift */,
+				B22FF69197A2BF92E96E2258 /* FirebaseAnalyticsTransport.swift */,
+				ECFEC4D18CFA03747338D8B9 /* InstallIdentityService.swift */,
 				BE5718A43BCEF928D2C8B120 /* KeychainService.swift */,
 				C86B599C8E9FA948D134F9CB /* LaunchCoordinator.swift */,
 				FF7C193AB70EADA32D40FE03 /* ProfileStore.swift */,
@@ -224,6 +262,7 @@
 			buildPhases = (
 				FC26473A87FBEA5914C937EF /* Sources */,
 				DA2508B9AC297F21FF731538 /* Resources */,
+				DEB3367A3B07760B39BA296B /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -231,6 +270,8 @@
 			);
 			name = ClaudeLauncher;
 			packageProductDependencies = (
+				57138ACA016EEAD4C6DD823E /* FirebaseAnalytics */,
+				73B1786F5731FF094D8C8DA4 /* FirebaseCore */,
 			);
 			productName = ClaudeLauncher;
 			productReference = CDF367D6B30680C0DDFFF8F3 /* ClaudeLauncher.app */;
@@ -256,6 +297,9 @@
 			);
 			mainGroup = 5C78AD17B3260C05B93CB523;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				4AB9F1780435685FE8203FD6 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 62FB7497087367C9D21F3577 /* Products */;
 			projectDirPath = "";
@@ -274,6 +318,7 @@
 			files = (
 				872DDD769B55F8326CC36CF4 /* Assets.xcassets in Resources */,
 				FB062510A987709EC7E59477 /* Assets.xcassets in Resources */,
+				9151B23B5264D49CFDA61FB5 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -284,6 +329,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				ED24F535E3B6A4E55D6237A8 /* AnalyticsTests.swift in Sources */,
 				971ACB0330BEFD6CDC60A361 /* ClaudeLauncherTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -292,12 +338,18 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				772189959C1CCF0D84ACA533 /* AnalyticsModels.swift in Sources */,
+				78ACB36E1304FAFED5C9F55B /* AnalyticsQueueStore.swift in Sources */,
+				93B7528E9D04907106CB3BED /* AnalyticsService.swift in Sources */,
+				C9480F7E53969BAE90F7229C /* AnalyticsStateStore.swift in Sources */,
 				6135DDA955760A213AEC42D9 /* AppModel.swift in Sources */,
 				E64E464B0848B4188CEED00D /* AppShellView.swift in Sources */,
 				65BF43C5169FB86B24B0A8EE /* ClaudeLauncherApp.swift in Sources */,
 				04C64D55B43D152B19B9EA9D /* ClaudeSessionDiscovery.swift in Sources */,
 				55785ABF033FD4CDBF1F9697 /* DesignSystem.swift in Sources */,
+				899B6C7704356AF56BCF7E82 /* FirebaseAnalyticsTransport.swift in Sources */,
 				7EF938ECDD5AD835782A6833 /* GlobalQuickLaunchBar.swift in Sources */,
+				1276708E7A7A2597C0DF2E95 /* InstallIdentityService.swift in Sources */,
 				DC14695FB98209B04EEE3F5C /* KeychainService.swift in Sources */,
 				DEB2B14087BDDA2CE41F647C /* LaunchCoordinator.swift in Sources */,
 				81C4CB9AB75ED83D8612B9EB /* LaunchWorkspaceView.swift in Sources */,
@@ -402,7 +454,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -422,7 +474,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -469,7 +521,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -483,7 +535,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.dashan.claude-launcher";
@@ -541,6 +593,30 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		4AB9F1780435685FE8203FD6 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.14.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		57138ACA016EEAD4C6DD823E /* FirebaseAnalytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4AB9F1780435685FE8203FD6 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalytics;
+		};
+		73B1786F5731FF094D8C8DA4 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4AB9F1780435685FE8203FD6 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 3CE89A7CDB824D6FCC680C3C /* Project object */;
 }

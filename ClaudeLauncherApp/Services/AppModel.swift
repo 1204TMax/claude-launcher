@@ -45,6 +45,7 @@ final class AppModel: ObservableObject {
     private let launchCoordinator: LaunchCoordinator
     private let startupAutomationCoordinator: StartupAutomationCoordinator
     private let claudeSessionDiscovery: ClaudeSessionDiscovery
+    private let analyticsService: AnalyticsService
     private let profilePersistenceQueue = DispatchQueue(label: "ClaudeLauncher.ProfilePersistence", qos: .utility)
     private let sessionDiscoveryQueue = DispatchQueue(label: "ClaudeLauncher.SessionDiscovery", qos: .utility)
     private var sessionDiscoveryGeneration = 0
@@ -55,13 +56,15 @@ final class AppModel: ObservableObject {
         sessionStore: SessionStore = SessionStore(),
         launchCoordinator: LaunchCoordinator = LaunchCoordinator(),
         startupAutomationCoordinator: StartupAutomationCoordinator = StartupAutomationCoordinator(),
-        claudeSessionDiscovery: ClaudeSessionDiscovery = ClaudeSessionDiscovery()
+        claudeSessionDiscovery: ClaudeSessionDiscovery = ClaudeSessionDiscovery(),
+        analyticsService: AnalyticsService = AnalyticsService()
     ) {
         self.profileStore = profileStore
         self.sessionStore = sessionStore
         self.launchCoordinator = launchCoordinator
         self.startupAutomationCoordinator = startupAutomationCoordinator
         self.claudeSessionDiscovery = claudeSessionDiscovery
+        self.analyticsService = analyticsService
         self.profiles = profileStore.loadProfiles()
         self.sessions = sessionStore.loadSessions().sorted(by: stableSessionSort)
         self.discoveredSessionMetadata = sessionStore.loadDiscoveredSessionMetadata()
@@ -69,6 +72,10 @@ final class AppModel: ObservableObject {
         self.selectedSessionID = sessions.first?.id
         syncLaunchCountInputFromSelectedProfile()
         refreshPreview()
+        analyticsService.trackAppLifecycle(
+            profilesCount: profiles.count,
+            storedSessionsCount: sessions.count
+        )
         reloadDiscoveredSessions()
     }
 
@@ -283,6 +290,7 @@ final class AppModel: ObservableObject {
         sessionDiscoveryGeneration += 1
         let generation = sessionDiscoveryGeneration
         isDiscoveringSessions = true
+        let startedAt = Date()
 
         sessionDiscoveryQueue.async { [claudeSessionDiscovery] in
             let sessions = claudeSessionDiscovery.discoverAllSessions()
@@ -308,6 +316,14 @@ final class AppModel: ObservableObject {
                 } else {
                     self.selectDiscoveredSession(self.selectedDiscoveredSessionID)
                 }
+
+                self.analyticsService.track(
+                    name: "session_list_refreshed",
+                    properties: [
+                        "discovered_count": String(sessions.count),
+                        "duration_ms": String(Int(Date().timeIntervalSince(startedAt) * 1000))
+                    ]
+                )
             }
         }
     }
@@ -320,6 +336,14 @@ final class AppModel: ObservableObject {
             var metadata = discoveredSessionMetadata[sessionID] ?? DiscoveredSessionMetadata()
             metadata.isPinned = pinned
             discoveredSessionMetadata[sessionID] = metadata
+            analyticsService.track(
+                name: "session_pin_toggled",
+                properties: [
+                    "session_id": sessionID,
+                    "source": "discovered",
+                    "pinned": pinned ? "true" : "false"
+                ]
+            )
             persistDiscoveredSessionMetadata()
             reloadDiscoveredSessions()
         }
@@ -429,11 +453,30 @@ final class AppModel: ObservableObject {
 
         if let error = launchCoordinator.validate(profile: launchProfile) {
             errorMessage = error
+            analyticsService.track(
+                name: "session_launch_failed",
+                properties: [
+                    "profile_id": launchProfile.id.uuidString,
+                    "batch_count": String(launchProfile.batchCount),
+                    "error_message": error
+                ],
+                flushImmediately: true
+            )
             return
         }
 
         errorMessage = nil
         let preparations = launchCoordinator.prepareLaunches(for: launchProfile)
+        analyticsService.track(
+            name: "session_launch_requested",
+            properties: [
+                "profile_id": launchProfile.id.uuidString,
+                "batch_count": String(launchProfile.batchCount),
+                "model": launchProfile.model,
+                "permission_mode": launchProfile.permissionMode.rawValue,
+                "launch_mode": launchProfile.launchMode.rawValue
+            ]
+        )
         for preparation in preparations {
             let automationPlan = startupAutomationCoordinator.makePlan(for: launchProfile, sessionName: preparation.sessionName)
             do {
@@ -460,6 +503,16 @@ final class AppModel: ObservableObject {
                 )
                 sessions.insert(session, at: 0)
                 selectedSessionID = session.id
+                analyticsService.track(
+                    name: "session_launch_succeeded",
+                    properties: [
+                        "session_id": session.id.uuidString,
+                        "profile_id": launchProfile.id.uuidString,
+                        "terminal_window_id": String(launchResult.windowID),
+                        "terminal_tab_index": String(launchResult.tabIndex)
+                    ],
+                    flushImmediately: true
+                )
             } catch {
                 let session = ManagedSession.make(
                     origin: .appLaunched,
@@ -476,6 +529,15 @@ final class AppModel: ObservableObject {
                 sessions.insert(session, at: 0)
                 selectedSessionID = session.id
                 errorMessage = error.localizedDescription
+                analyticsService.track(
+                    name: "session_launch_failed",
+                    properties: [
+                        "profile_id": launchProfile.id.uuidString,
+                        "session_id": session.id.uuidString,
+                        "error_message": error.localizedDescription
+                    ],
+                    flushImmediately: true
+                )
             }
         }
         persistSessions()
@@ -494,6 +556,15 @@ final class AppModel: ObservableObject {
         sessions[index].displayName = newName
 
         let syncSucceeded = updateTerminalTitle(newName, for: sessions[index])
+        analyticsService.track(
+            name: "session_renamed",
+            properties: [
+                "session_id": sessions[index].id.uuidString,
+                "source": "managed",
+                "sync_to_terminal_success": syncSucceeded ? "true" : "false"
+            ],
+            flushImmediately: true
+        )
         if syncSucceeded {
             sessions[index].claudeSessionName = newName
             sessions[index].errorMessage = nil
@@ -508,11 +579,28 @@ final class AppModel: ObservableObject {
     func setSessionPinned(_ sessionID: ManagedSession.ID, pinned: Bool) {
         guard let index = sessions.firstIndex(where: { $0.id == sessionID }) else { return }
         sessions[index].isPinned = pinned
+        analyticsService.track(
+            name: "session_pin_toggled",
+            properties: [
+                "session_id": sessions[index].id.uuidString,
+                "source": "managed",
+                "pinned": pinned ? "true" : "false"
+            ]
+        )
         touchManagedSession(at: index)
     }
 
     func deleteSession(_ sessionID: ManagedSession.ID) {
         guard let index = sessions.firstIndex(where: { $0.id == sessionID }) else { return }
+        let deletedSession = sessions[index]
+        analyticsService.track(
+            name: "session_deleted_or_hidden",
+            properties: [
+                "session_id": deletedSession.id.uuidString,
+                "source": "managed"
+            ],
+            flushImmediately: true
+        )
         sessions.remove(at: index)
         if selectedSessionID == sessionID {
             selectedSessionID = sessions.first?.id
@@ -527,6 +615,14 @@ final class AppModel: ObservableObject {
             errorMessage = "找不到原配置，无法重新打开。"
             return
         }
+        analyticsService.track(
+            name: "session_reopen",
+            properties: [
+                "session_id": session.id.uuidString,
+                "source": "managed"
+            ],
+            flushImmediately: true
+        )
         launch(profileID: profileID, count: 1)
     }
 
@@ -595,6 +691,16 @@ final class AppModel: ObservableObject {
         discoveredSessionMetadata[sessionID] = metadata
         persistDiscoveredSessionMetadata()
 
+        analyticsService.track(
+            name: "session_renamed",
+            properties: [
+                "session_id": sessionID,
+                "source": "discovered",
+                "sync_to_terminal_success": syncSucceeded ? "true" : "false"
+            ],
+            flushImmediately: true
+        )
+
         if !syncSucceeded {
             errorMessage = "改名未同步到 Claude。"
         }
@@ -608,8 +714,26 @@ final class AppModel: ObservableObject {
 
     private func terminateAndHideDiscoveredSession(sessionID: String) {
         if let liveSession = claudeSessionDiscovery.discoverLiveSessions().first(where: { $0.sessionID == sessionID || $0.id == sessionID }) {
-            _ = launchCoordinator.terminateProcess(pid: liveSession.pid)
+            let terminated = launchCoordinator.terminateProcess(pid: liveSession.pid)
+            if terminated {
+                analyticsService.track(
+                    name: "session_terminated",
+                    properties: [
+                        "session_id": sessionID,
+                        "source": "discovered"
+                    ],
+                    flushImmediately: true
+                )
+            }
         }
+        analyticsService.track(
+            name: "session_deleted_or_hidden",
+            properties: [
+                "session_id": sessionID,
+                "source": "discovered"
+            ],
+            flushImmediately: true
+        )
         var metadata = discoveredSessionMetadata[sessionID] ?? DiscoveredSessionMetadata()
         metadata.isHidden = true
         discoveredSessionMetadata[sessionID] = metadata
@@ -624,6 +748,14 @@ final class AppModel: ObservableObject {
         guard let session = discoveredSessions.first(where: { $0.id == sessionID }) else { return }
         let fallbackTitle = session.name?.nonEmpty(or: session.sessionID) ?? session.sessionID
         let sessionName = discoveredSessionMetadata[sessionID]?.customName?.nonEmpty(or: fallbackTitle) ?? fallbackTitle
+        analyticsService.track(
+            name: "session_reopen",
+            properties: [
+                "session_id": sessionID,
+                "source": "discovered"
+            ],
+            flushImmediately: true
+        )
         do {
             _ = try launchCoordinator.resumeInTerminal(cwd: session.cwd, sessionID: session.sessionID, sessionName: sessionName)
         } catch {
@@ -641,6 +773,14 @@ final class AppModel: ObservableObject {
         if launchCoordinator.terminateProcess(pid: pid) {
             sessions[index].status = .exited
             sessions[index].canTerminate = false
+            analyticsService.track(
+                name: "session_terminated",
+                properties: [
+                    "session_id": sessions[index].id.uuidString,
+                    "source": "managed"
+                ],
+                flushImmediately: true
+            )
             return true
         }
 

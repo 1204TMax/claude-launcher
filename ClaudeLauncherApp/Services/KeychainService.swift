@@ -1,7 +1,13 @@
 import Foundation
 import Security
 
-final class KeychainService {
+protocol SecretStore {
+    func saveSecret(_ value: String, for key: String) throws
+    func loadSecret(for key: String) -> String?
+    func deleteSecret(for key: String)
+}
+
+final class KeychainService: SecretStore {
     func saveSecret(_ value: String, for key: String) throws {
         let data = Data(value.utf8)
         let query: [CFString: Any] = [

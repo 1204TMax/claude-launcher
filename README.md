@@ -11,7 +11,7 @@ ClaudeLauncher 是一个原生 macOS 桌面端工具，用来把 **Claude Code**
 ## 官网与下载
 
 - 官网：`https://cclauncher.chattcy.top`
-- 最新下载：`https://cclauncher.chattcy.top/ClaudeLauncher-1.0.1.dmg`
+- 最新下载：`https://cclauncher.chattcy.top/ClaudeLauncher-1.0.2.dmg`
 - 官网仓库：`https://github.com/1204TMax/claude-launcher-site`
 
 ---
