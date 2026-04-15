@@ -8,19 +8,25 @@
 
 /* Begin PBXBuildFile section */
 		04C64D55B43D152B19B9EA9D /* ClaudeSessionDiscovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDFF998E616C614FE2717EC4 /* ClaudeSessionDiscovery.swift */; };
-		054CA07257E3962E4F66CD91 /* SessionMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEDBF4F55DA258EF1849F6EA /* SessionMonitor.swift */; };
+		0B8144CF8659C820E1BA3FC5 /* ProfilesWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D72DF3B1F23B243C92FC65AB /* ProfilesWorkspaceView.swift */; };
 		25060008F39BFFF9CA0C86CB /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5997E54208B7BD49819E29B9 /* Models.swift */; };
+		55785ABF033FD4CDBF1F9697 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C26A7668EDF5E501805F0AB /* DesignSystem.swift */; };
 		5B6F2DCBC4F4859F6A3870AC /* SessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EEF80D40C95B59DAEE5A22C /* SessionStore.swift */; };
 		6135DDA955760A213AEC42D9 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0947A8942521A93C0F17B476 /* AppModel.swift */; };
 		65BF43C5169FB86B24B0A8EE /* ClaudeLauncherApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 090EC38E54823DD8D1D475DC /* ClaudeLauncherApp.swift */; };
 		7110C0A262306CC24AC18636 /* StartupAutomationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62B743B1A5112014C2BCBFAC /* StartupAutomationCoordinator.swift */; };
+		7EF938ECDD5AD835782A6833 /* GlobalQuickLaunchBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = C49CDFE337E232A402D23A86 /* GlobalQuickLaunchBar.swift */; };
+		81C4CB9AB75ED83D8612B9EB /* LaunchWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94623FE2C244B668C98D82E1 /* LaunchWorkspaceView.swift */; };
 		8444F14ECB4C933411868DB5 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE4A325C9994299C2B75465F /* RootView.swift */; };
+		872DDD769B55F8326CC36CF4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B3ABBAF8BCC0DAF6C539EF4B /* Assets.xcassets */; };
 		971ACB0330BEFD6CDC60A361 /* ClaudeLauncherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E9CFC0E9ADB2B4C598FD2C3 /* ClaudeLauncherTests.swift */; };
+		CCAF0DD00C7142EA4CE586CD /* SessionsWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44430D39B318E5A302B584F0 /* SessionsWorkspaceView.swift */; };
 		CD1F35AAF4C32ACFC5C4B6E5 /* PTYSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = C18FE8631E92CC582ABACA48 /* PTYSession.swift */; };
-		DA335F495AADE9FB31E97FEE /* GatewayStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7A61D2B87DD2076B41A16C1 /* GatewayStore.swift */; };
 		DC14695FB98209B04EEE3F5C /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE5718A43BCEF928D2C8B120 /* KeychainService.swift */; };
 		DEB2B14087BDDA2CE41F647C /* LaunchCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C86B599C8E9FA948D134F9CB /* LaunchCoordinator.swift */; };
+		E64E464B0848B4188CEED00D /* AppShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26B2A6BA974E32F2E1686BF1 /* AppShellView.swift */; };
 		F5143357A93844EA062D692F /* ProfileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF7C193AB70EADA32D40FE03 /* ProfileStore.swift */; };
+		FB062510A987709EC7E59477 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7589F302C58D6B36D830C5C9 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -38,21 +44,37 @@
 		090EC38E54823DD8D1D475DC /* ClaudeLauncherApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeLauncherApp.swift; sourceTree = "<group>"; };
 		0947A8942521A93C0F17B476 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		1EEF80D40C95B59DAEE5A22C /* SessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStore.swift; sourceTree = "<group>"; };
+		26B2A6BA974E32F2E1686BF1 /* AppShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShellView.swift; sourceTree = "<group>"; };
+		44430D39B318E5A302B584F0 /* SessionsWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionsWorkspaceView.swift; sourceTree = "<group>"; };
 		4E9CFC0E9ADB2B4C598FD2C3 /* ClaudeLauncherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeLauncherTests.swift; sourceTree = "<group>"; };
 		5997E54208B7BD49819E29B9 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		5C26A7668EDF5E501805F0AB /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		62B743B1A5112014C2BCBFAC /* StartupAutomationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupAutomationCoordinator.swift; sourceTree = "<group>"; };
+		7589F302C58D6B36D830C5C9 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		94623FE2C244B668C98D82E1 /* LaunchWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchWorkspaceView.swift; sourceTree = "<group>"; };
+		B3ABBAF8BCC0DAF6C539EF4B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		BDFF998E616C614FE2717EC4 /* ClaudeSessionDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeSessionDiscovery.swift; sourceTree = "<group>"; };
 		BE4A325C9994299C2B75465F /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		BE5718A43BCEF928D2C8B120 /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
 		C18FE8631E92CC582ABACA48 /* PTYSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PTYSession.swift; sourceTree = "<group>"; };
-		C7A61D2B87DD2076B41A16C1 /* GatewayStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatewayStore.swift; sourceTree = "<group>"; };
+		C49CDFE337E232A402D23A86 /* GlobalQuickLaunchBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalQuickLaunchBar.swift; sourceTree = "<group>"; };
 		C86B599C8E9FA948D134F9CB /* LaunchCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchCoordinator.swift; sourceTree = "<group>"; };
 		CDF367D6B30680C0DDFFF8F3 /* ClaudeLauncher.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClaudeLauncher.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		CEDBF4F55DA258EF1849F6EA /* SessionMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionMonitor.swift; sourceTree = "<group>"; };
+		D72DF3B1F23B243C92FC65AB /* ProfilesWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilesWorkspaceView.swift; sourceTree = "<group>"; };
 		FF7C193AB70EADA32D40FE03 /* ProfileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
+		07D2F68894E59F2CB09531E9 /* Shell */ = {
+			isa = PBXGroup;
+			children = (
+				26B2A6BA974E32F2E1686BF1 /* AppShellView.swift */,
+				5C26A7668EDF5E501805F0AB /* DesignSystem.swift */,
+				C49CDFE337E232A402D23A86 /* GlobalQuickLaunchBar.swift */,
+			);
+			path = Shell;
+			sourceTree = "<group>";
+		};
 		1F08B150E5560FC66E8C954F /* Domain */ = {
 			isa = PBXGroup;
 			children = (
@@ -64,9 +86,20 @@
 		2931A4CB3789D80F4543886F /* Features */ = {
 			isa = PBXGroup;
 			children = (
+				80A78F8209F3EB2132A5377C /* Launch */,
 				81628556789C198ECD065A81 /* Profiles */,
+				4EBE3D23DC43C3A296457EA8 /* Sessions */,
+				07D2F68894E59F2CB09531E9 /* Shell */,
 			);
 			path = Features;
+			sourceTree = "<group>";
+		};
+		4EBE3D23DC43C3A296457EA8 /* Sessions */ = {
+			isa = PBXGroup;
+			children = (
+				44430D39B318E5A302B584F0 /* SessionsWorkspaceView.swift */,
+			);
+			path = Sessions;
 			sourceTree = "<group>";
 		};
 		5C12D0D4BF8BD45D62819C23 /* Infrastructure */ = {
@@ -103,9 +136,18 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		80A78F8209F3EB2132A5377C /* Launch */ = {
+			isa = PBXGroup;
+			children = (
+				94623FE2C244B668C98D82E1 /* LaunchWorkspaceView.swift */,
+			);
+			path = Launch;
+			sourceTree = "<group>";
+		};
 		81628556789C198ECD065A81 /* Profiles */ = {
 			isa = PBXGroup;
 			children = (
+				D72DF3B1F23B243C92FC65AB /* ProfilesWorkspaceView.swift */,
 				BE4A325C9994299C2B75465F /* RootView.swift */,
 			);
 			path = Profiles;
@@ -114,6 +156,7 @@
 		A4D8CFB17AC443412608B6D8 /* App */ = {
 			isa = PBXGroup;
 			children = (
+				7589F302C58D6B36D830C5C9 /* Assets.xcassets */,
 				090EC38E54823DD8D1D475DC /* ClaudeLauncherApp.swift */,
 			);
 			path = App;
@@ -124,11 +167,9 @@
 			children = (
 				0947A8942521A93C0F17B476 /* AppModel.swift */,
 				BDFF998E616C614FE2717EC4 /* ClaudeSessionDiscovery.swift */,
-				C7A61D2B87DD2076B41A16C1 /* GatewayStore.swift */,
 				BE5718A43BCEF928D2C8B120 /* KeychainService.swift */,
 				C86B599C8E9FA948D134F9CB /* LaunchCoordinator.swift */,
 				FF7C193AB70EADA32D40FE03 /* ProfileStore.swift */,
-				CEDBF4F55DA258EF1849F6EA /* SessionMonitor.swift */,
 				1EEF80D40C95B59DAEE5A22C /* SessionStore.swift */,
 				62B743B1A5112014C2BCBFAC /* StartupAutomationCoordinator.swift */,
 			);
@@ -146,6 +187,7 @@
 		B2812846036ACDCF56833215 /* ClaudeLauncherApp */ = {
 			isa = PBXGroup;
 			children = (
+				B3ABBAF8BCC0DAF6C539EF4B /* Assets.xcassets */,
 				A4D8CFB17AC443412608B6D8 /* App */,
 				1F08B150E5560FC66E8C954F /* Domain */,
 				2931A4CB3789D80F4543886F /* Features */,
@@ -181,6 +223,7 @@
 			buildConfigurationList = 6AF96C901A4C97BD91DB01E9 /* Build configuration list for PBXNativeTarget "ClaudeLauncher" */;
 			buildPhases = (
 				FC26473A87FBEA5914C937EF /* Sources */,
+				DA2508B9AC297F21FF731538 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -224,6 +267,18 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		DA2508B9AC297F21FF731538 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				872DDD769B55F8326CC36CF4 /* Assets.xcassets in Resources */,
+				FB062510A987709EC7E59477 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		9BA7E0185592DA1DFC590805 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -238,17 +293,21 @@
 			buildActionMask = 2147483647;
 			files = (
 				6135DDA955760A213AEC42D9 /* AppModel.swift in Sources */,
+				E64E464B0848B4188CEED00D /* AppShellView.swift in Sources */,
 				65BF43C5169FB86B24B0A8EE /* ClaudeLauncherApp.swift in Sources */,
 				04C64D55B43D152B19B9EA9D /* ClaudeSessionDiscovery.swift in Sources */,
-				DA335F495AADE9FB31E97FEE /* GatewayStore.swift in Sources */,
+				55785ABF033FD4CDBF1F9697 /* DesignSystem.swift in Sources */,
+				7EF938ECDD5AD835782A6833 /* GlobalQuickLaunchBar.swift in Sources */,
 				DC14695FB98209B04EEE3F5C /* KeychainService.swift in Sources */,
 				DEB2B14087BDDA2CE41F647C /* LaunchCoordinator.swift in Sources */,
+				81C4CB9AB75ED83D8612B9EB /* LaunchWorkspaceView.swift in Sources */,
 				25060008F39BFFF9CA0C86CB /* Models.swift in Sources */,
 				CD1F35AAF4C32ACFC5C4B6E5 /* PTYSession.swift in Sources */,
 				F5143357A93844EA062D692F /* ProfileStore.swift in Sources */,
+				0B8144CF8659C820E1BA3FC5 /* ProfilesWorkspaceView.swift in Sources */,
 				8444F14ECB4C933411868DB5 /* RootView.swift in Sources */,
-				054CA07257E3962E4F66CD91 /* SessionMonitor.swift in Sources */,
 				5B6F2DCBC4F4859F6A3870AC /* SessionStore.swift in Sources */,
+				CCAF0DD00C7142EA4CE586CD /* SessionsWorkspaceView.swift in Sources */,
 				7110C0A262306CC24AC18636 /* StartupAutomationCoordinator.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -343,6 +402,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 2;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -362,6 +422,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0.1;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -408,6 +469,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 2;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -421,6 +483,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.dashan.claude-launcher";

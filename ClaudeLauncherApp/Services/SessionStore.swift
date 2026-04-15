@@ -15,7 +15,7 @@ final class SessionStore {
     }
 
     func loadSessions() -> [ManagedSession] {
-        let url = storageURL()
+        let url = sessionsStorageURL()
         guard fileManager.fileExists(atPath: url.path) else {
             return []
         }
@@ -29,16 +29,43 @@ final class SessionStore {
     }
 
     func saveSessions(_ sessions: [ManagedSession]) throws {
-        let url = storageURL()
+        let url = sessionsStorageURL()
         try fileManager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         let data = try encoder.encode(sessions)
         try data.write(to: url, options: .atomic)
     }
 
-    private func storageURL() -> URL {
+    func loadDiscoveredSessionMetadata() -> [String: DiscoveredSessionMetadata] {
+        let url = discoveredSessionMetadataStorageURL()
+        guard fileManager.fileExists(atPath: url.path) else {
+            return [:]
+        }
+
+        do {
+            let data = try Data(contentsOf: url)
+            return try decoder.decode([String: DiscoveredSessionMetadata].self, from: data)
+        } catch {
+            return [:]
+        }
+    }
+
+    func saveDiscoveredSessionMetadata(_ metadata: [String: DiscoveredSessionMetadata]) throws {
+        let url = discoveredSessionMetadataStorageURL()
+        try fileManager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        let data = try encoder.encode(metadata)
+        try data.write(to: url, options: .atomic)
+    }
+
+    private func baseStorageURL() -> URL {
         let base = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        return base
-            .appendingPathComponent("ClaudeLauncher", isDirectory: true)
-            .appendingPathComponent("sessions.json")
+        return base.appendingPathComponent("ClaudeLauncher", isDirectory: true)
+    }
+
+    private func sessionsStorageURL() -> URL {
+        baseStorageURL().appendingPathComponent("sessions.json")
+    }
+
+    private func discoveredSessionMetadataStorageURL() -> URL {
+        baseStorageURL().appendingPathComponent("discovered-session-metadata.json")
     }
 }

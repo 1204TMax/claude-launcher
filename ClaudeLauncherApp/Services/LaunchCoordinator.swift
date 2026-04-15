@@ -4,6 +4,7 @@ import Foundation
 struct LaunchPreparation {
     let sessionName: String
     let shellCommand: String
+    let pidFilePath: String?
 }
 
 struct TerminalLaunchResult {
@@ -11,9 +12,9 @@ struct TerminalLaunchResult {
     let tabIndex: Int
 }
 
-struct MonitoredTerminalState {
-    let exists: Bool
-    let isBusy: Bool
+struct TerminalTarget {
+    let windowID: Int
+    let tabIndex: Int
 }
 
 final class LaunchCoordinator {
@@ -32,6 +33,10 @@ final class LaunchCoordinator {
             return "工作目录不存在。"
         }
 
+        for path in profile.contextFilePaths where !fileManager.fileExists(atPath: path) {
+            return "上下文文件不存在：\(path)"
+        }
+
         if profile.batchCount < 1 {
             return "批量启动数量至少为 1。"
         }
@@ -39,14 +44,21 @@ final class LaunchCoordinator {
         return nil
     }
 
-    func prepareLaunches(for profile: LaunchProfile, gateway: GatewayConfig?, apiKey: String?) -> [LaunchPreparation] {
+    func prepareLaunches(for profile: LaunchProfile) -> [LaunchPreparation] {
         (1...profile.batchCount).map { index in
             let sessionName = profile.resolvedSessionName(index: index)
+            let pidFilePath = (profile.advancedSettingsEnabled && profile.startupRenameEnabled) ? startupPIDFilePath() : nil
             return LaunchPreparation(
                 sessionName: sessionName,
-                shellCommand: buildShellCommand(profile: profile, gateway: gateway, apiKey: apiKey, sessionName: sessionName)
+                shellCommand: buildShellCommand(profile: profile, sessionName: sessionName, pidFilePath: pidFilePath),
+                pidFilePath: pidFilePath
             )
         }
+    }
+
+    func resumeInTerminal(cwd: String, sessionID: String, sessionName: String) throws -> TerminalLaunchResult {
+        let command = "cd \(cwd.shellEscaped); claude --resume \(sessionID.shellEscaped)"
+        return try launchInTerminal(LaunchPreparation(sessionName: sessionName, shellCommand: command, pidFilePath: nil))
     }
 
     func launchInTerminal(_ preparation: LaunchPreparation) throws -> TerminalLaunchResult {
@@ -83,6 +95,41 @@ final class LaunchCoordinator {
         return TerminalLaunchResult(windowID: parts[0], tabIndex: parts[1])
     }
 
+    func applyTerminalAppearance(windowID: Int, tabIndex: Int, preference: TerminalFontPreference, customFontSize: String) throws -> Int? {
+        let fontSize: Int?
+        switch preference {
+        case .large:
+            fontSize = 16
+        case .medium:
+            fontSize = 14
+        case .systemDefault:
+            fontSize = 12
+        case .custom:
+            if let size = Int(customFontSize.trimmingCharacters(in: .whitespacesAndNewlines)), size >= 9, size <= 48 {
+                fontSize = size
+            } else {
+                fontSize = nil
+            }
+        }
+
+        guard let fontSize else { return nil }
+
+        let output = try runAppleScript(
+            """
+            tell application "Terminal"
+                set theWindow to first window whose id is \(windowID)
+                set theTab to tab \(tabIndex) of theWindow
+                set current settings of theTab to current settings of theTab
+                set font size of current settings of theTab to \(fontSize)
+                delay 0.05
+                return font size of current settings of theTab as string
+            end tell
+            """
+        ).trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return Int(output)
+    }
+
     func sendCommand(_ command: String, toWindowID windowID: Int, tabIndex: Int) throws {
         _ = try runAppleScript(
             """
@@ -95,33 +142,64 @@ final class LaunchCoordinator {
         )
     }
 
-    func fetchTerminalState(windowID: Int, tabIndex: Int) throws -> MonitoredTerminalState {
-        let output = try runAppleScript(
+    func updateTerminalTitle(_ title: String, windowID: Int, tabIndex: Int) throws {
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedTitle.isEmpty else { return }
+        _ = try runAppleScript(
             """
             tell application "Terminal"
-                if not (exists (first window whose id is \(windowID))) then
-                    return "missing"
-                end if
                 set theWindow to first window whose id is \(windowID)
-                if (count of tabs of theWindow) < \(tabIndex) then
-                    return "missing"
-                end if
-                set isBusyValue to busy of tab \(tabIndex) of theWindow
-                return "exists," & (isBusyValue as string)
+                set custom title of tab \(tabIndex) of theWindow to "\(trimmedTitle.appleScriptEscaped)"
             end tell
             """
-        ).trimmingCharacters(in: .whitespacesAndNewlines)
+        )
+    }
 
-        if output == "missing" {
-            return MonitoredTerminalState(exists: false, isBusy: false)
-        }
+    func findTerminalTarget(forTTY tty: String) -> TerminalTarget? {
+        let normalizedTTY = tty
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "/dev/", with: "")
+        guard !normalizedTTY.isEmpty else { return nil }
+        let output = try? runAppleScript(
+            """
+            tell application "Terminal"
+                repeat with theWindow in windows
+                    repeat with i from 1 to count of tabs of theWindow
+                        try
+                            set tabTTY to tty of tab i of theWindow
+                            if (tabTTY as string) is equal to "/dev/\(normalizedTTY.appleScriptEscaped)" then
+                                return (id of theWindow as string) & "," & (i as string)
+                            end if
+                        end try
+                    end repeat
+                end repeat
+                return ""
+            end tell
+            """
+        )
+        guard let output else { return nil }
+        let parts = output.trimmingCharacters(in: .whitespacesAndNewlines).split(separator: ",").compactMap { Int($0) }
+        guard parts.count == 2 else { return nil }
+        return TerminalTarget(windowID: parts[0], tabIndex: parts[1])
+    }
 
-        let parts = output.split(separator: ",")
-        if parts.count == 2 {
-            return MonitoredTerminalState(exists: true, isBusy: String(parts[1]).lowercased() == "true")
-        }
-
-        return MonitoredTerminalState(exists: true, isBusy: false)
+    func terminalTTY(windowID: Int, tabIndex: Int) -> String? {
+        let output = try? runAppleScript(
+            """
+            tell application "Terminal"
+                set theWindow to first window whose id is \(windowID)
+                set theTab to tab \(tabIndex) of theWindow
+                try
+                    return tty of theTab as string
+                on error
+                    return ""
+                end try
+            end tell
+            """
+        )
+        let tty = output?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !tty.isEmpty else { return nil }
+        return tty
     }
 
     func terminateProcess(pid: Int32) -> Bool {
@@ -162,49 +240,22 @@ final class LaunchCoordinator {
         }
     }
 
-    private func buildShellCommand(profile: LaunchProfile, gateway: GatewayConfig?, apiKey: String?, sessionName: String) -> String {
+    private func buildShellCommand(profile: LaunchProfile, sessionName: String, pidFilePath: String?) -> String {
         var segments: [String] = []
         segments.append("cd \(profile.workingDirectory.shellEscaped)")
 
-        if let gateway {
-            switch gateway.providerType {
-            case .anthropic, .customGateway:
-                if !gateway.baseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    segments.append("export ANTHROPIC_BASE_URL=\(gateway.baseURL.shellEscaped)")
-                }
-                if let apiKey, !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    segments.append("export ANTHROPIC_API_KEY=\(apiKey.shellEscaped)")
-                }
-            case .bedrock:
-                if !gateway.baseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    segments.append("export ANTHROPIC_BEDROCK_BASE_URL=\(gateway.baseURL.shellEscaped)")
-                }
-                segments.append("export CLAUDE_CODE_SKIP_BEDROCK_AUTH='1'")
-                if let apiKey, !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    segments.append("export ANTHROPIC_AUTH_TOKEN=\(apiKey.shellEscaped)")
-                }
-            case .vertex:
-                if !gateway.baseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    segments.append("export ANTHROPIC_VERTEX_BASE_URL=\(gateway.baseURL.shellEscaped)")
-                }
-                segments.append("export CLAUDE_CODE_SKIP_VERTEX_AUTH='1'")
-                if let apiKey, !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    segments.append("export ANTHROPIC_AUTH_TOKEN=\(apiKey.shellEscaped)")
-                }
-            case .foundry:
-                if !gateway.baseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    segments.append("export ANTHROPIC_FOUNDRY_BASE_URL=\(gateway.baseURL.shellEscaped)")
-                }
-                segments.append("export CLAUDE_CODE_SKIP_FOUNDRY_AUTH='1'")
-                if let apiKey, !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    segments.append("export ANTHROPIC_AUTH_TOKEN=\(apiKey.shellEscaped)")
-                }
-            }
+        if profile.advancedSettingsEnabled, let pidFilePath {
+            let directory = (pidFilePath as NSString).deletingLastPathComponent
+            segments.append("mkdir -p \(directory.shellEscaped)")
+            segments.append("printf '%s\\n%s' \"$$\" \"$(tty | sed 's#^/dev/##')\" > \(pidFilePath.shellEscaped)")
         }
 
         var claudeParts: [String] = []
-        claudeParts.append("claude")
-        claudeParts.append("-n \(sessionName.shellEscaped)")
+        claudeParts.append("exec claude")
+
+        if profile.startupRenameEnabled {
+            claudeParts.append("--name \(sessionName.shellEscaped)")
+        }
 
         switch profile.permissionMode {
         case .auto:
@@ -215,7 +266,9 @@ final class LaunchCoordinator {
             claudeParts.append("--permission-mode \(profile.permissionMode.rawValue.shellEscaped)")
         }
 
-        claudeParts.append("--effort \(profile.thinkingDepth.rawValue.shellEscaped)")
+        if let effort = supportedEffortArgument(for: profile) {
+            claudeParts.append("--effort \(effort.shellEscaped)")
+        }
 
         if profile.launchMode == .bare {
             claudeParts.append("--bare")
@@ -235,13 +288,58 @@ final class LaunchCoordinator {
             claudeParts.append("--add-dir \(directory.shellEscaped)")
         }
 
-        let trimmedStartupMessage = profile.startupMessage.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmedStartupMessage.isEmpty {
-            claudeParts.append(trimmedStartupMessage.shellEscaped)
+        let startupPrompt = buildStartupPrompt(for: profile)
+        if !startupPrompt.isEmpty {
+            claudeParts.append(startupPrompt.shellEscaped)
         }
 
         segments.append(claudeParts.joined(separator: " "))
         return segments.joined(separator: "; ")
+    }
+
+    private func buildStartupPrompt(for profile: LaunchProfile) -> String {
+        var blocks: [String] = []
+
+        if !profile.contextFilePaths.isEmpty {
+            let fileList = profile.contextFilePaths.map { "@\($0)" }.joined(separator: "\n")
+            blocks.append("请阅读以下文件：\n\(fileList)")
+        }
+
+        return blocks.joined(separator: "\n\n")
+    }
+
+    private func supportedEffortArgument(for profile: LaunchProfile) -> String? {
+        guard profile.thinkingDepth != .auto else { return nil }
+
+        let trimmedModel = profile.model.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if profile.thinkingDepth == .max,
+           !(trimmedModel.contains("opus") || trimmedModel.contains("claude-opus-4-6")) {
+            return ThinkingDepth.high.rawValue
+        }
+
+        return profile.thinkingDepth.rawValue
+    }
+
+    func startupMarker(from pidFilePath: String) -> (pid: Int32, tty: String?)? {
+        guard fileManager.fileExists(atPath: pidFilePath),
+              let content = try? String(contentsOfFile: pidFilePath, encoding: .utf8) else {
+            return nil
+        }
+        let lines = content
+            .split(whereSeparator: { $0.isNewline })
+            .map(String.init)
+        guard let first = lines.first?.trimmingCharacters(in: .whitespacesAndNewlines),
+              let pid = Int32(first), pid > 0 else { return nil }
+        let ttyLine = lines.dropFirst().first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let tty = ttyLine.isEmpty ? nil : ttyLine
+        return (pid: pid, tty: tty)
+    }
+
+    private func startupPIDFilePath() -> String {
+        let token = UUID().uuidString.lowercased()
+        let directory = URL(fileURLWithPath: NSHomeDirectory())
+            .appendingPathComponent(".claude/launcher", isDirectory: true)
+        return directory.appendingPathComponent("\(token).pid").path
     }
 
     private func runAppleScript(_ source: String) throws -> String {

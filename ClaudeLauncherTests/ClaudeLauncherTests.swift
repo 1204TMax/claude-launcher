@@ -10,6 +10,41 @@ final class ClaudeLauncherTests: XCTestCase {
         XCTAssertEqual(profile.resolvedSessionName(index: 3), "Batch-3")
     }
 
+    func testLaunchCommandIncludesCoreSettingsWithoutAdvancedMode() {
+        var profile = LaunchProfile.makeDefault()
+        profile.advancedSettingsEnabled = false
+        profile.model = "sonnet"
+        profile.permissionMode = .acceptEdits
+        profile.thinkingDepth = .high
+        profile.launchMode = .bare
+        profile.appendSystemPrompt = "额外系统提示"
+        profile.additionalDirectories = ["/tmp"]
+        profile.contextFilePaths = ["/tmp/context.md"]
+
+        let command = LaunchCoordinator().prepareLaunches(for: profile).first?.shellCommand ?? ""
+
+        XCTAssertTrue(command.contains("cd "))
+        XCTAssertTrue(command.contains("exec claude"))
+        XCTAssertTrue(command.contains("--model 'sonnet'"))
+        XCTAssertTrue(command.contains("--permission-mode 'acceptEdits'"))
+        XCTAssertTrue(command.contains("--effort 'high'"))
+        XCTAssertTrue(command.contains("--bare"))
+        XCTAssertTrue(command.contains("--append-system-prompt '额外系统提示'"))
+        XCTAssertTrue(command.contains("--add-dir '/tmp'"))
+        XCTAssertTrue(command.contains("@/tmp/context.md"))
+    }
+
+    func testMaxEffortFallsBackToHighForNonOpusModel() {
+        var profile = LaunchProfile.makeDefault()
+        profile.model = "sonnet"
+        profile.thinkingDepth = .max
+
+        let command = LaunchCoordinator().prepareLaunches(for: profile).first?.shellCommand ?? ""
+
+        XCTAssertTrue(command.contains("--effort 'high'"))
+        XCTAssertFalse(command.contains("--effort 'max'"))
+    }
+
     func testManagedSessionFactoryCopiesProfileSettings() {
         var profile = LaunchProfile.makeDefault()
         profile.name = "写代码"
@@ -21,7 +56,6 @@ final class ClaudeLauncherTests: XCTestCase {
         let session = ManagedSession.make(
             origin: .appLaunched,
             profile: profile,
-            gatewayName: "默认 Anthropic",
             displayName: "写代码 1",
             command: "cd '/tmp'; claude -n '写代码 1'",
             status: .running,
@@ -43,42 +77,8 @@ final class ClaudeLauncherTests: XCTestCase {
         XCTAssertEqual(session.terminalWindowID, 100)
         XCTAssertEqual(session.terminalTabIndex, 2)
         XCTAssertEqual(session.claudeSessionName, "写代码 1")
-        XCTAssertEqual(session.gatewayName, "默认 Anthropic")
         XCTAssertEqual(session.pid, 123)
         XCTAssertEqual(session.claudeSessionID, "session-1")
-    }
-
-    func testDiscoveredSessionFactoryUsesExternalOrigin() {
-        let session = ManagedSession.make(
-            origin: .discoveredExternal,
-            profile: nil,
-            gatewayName: nil,
-            displayName: "外部会话",
-            command: "claude (外部发现)",
-            status: .running,
-            claudeSessionID: "external-session",
-            pid: 999,
-            canSendCommands: false,
-            canTerminate: true
-        )
-
-        XCTAssertEqual(session.origin, .discoveredExternal)
-        XCTAssertEqual(session.profileName, "外部会话")
-        XCTAssertFalse(session.canSendCommands)
-        XCTAssertTrue(session.canTerminate)
-    }
-
-    func testDiscoveredClaudeSessionNormalizesBlankName() {
-        let discovered = DiscoveredClaudeSession(
-            id: "pid-1",
-            pid: 1,
-            sessionID: "s1",
-            cwd: "/tmp",
-            startedAt: nil,
-            name: "   "
-        )
-
-        XCTAssertNil(discovered.normalizedName)
     }
 
     func testSummaryPlaceholderIncludesProfileAndSessionName() {
@@ -94,30 +94,22 @@ final class ClaudeLauncherTests: XCTestCase {
 
     func testManagedSessionStatusDisplayNames() {
         XCTAssertEqual(ManagedSessionStatus.running.displayName, "运行中")
-        XCTAssertEqual(ManagedSessionStatus.idle.displayName, "空闲")
         XCTAssertEqual(ManagedSessionStatus.exited.displayName, "已结束")
+        XCTAssertEqual(ManagedSessionStatus.archived.displayName, "已归档")
     }
 
     func testPermissionModeDisplayNames() {
-        XCTAssertEqual(PermissionMode.acceptEdits.displayName, "自动接受编辑")
-        XCTAssertEqual(PermissionMode.bypassPermissions.displayName, "跳过权限（危险）")
+        XCTAssertEqual(PermissionMode.acceptEdits.displayName, "允许编辑")
+        XCTAssertEqual(PermissionMode.bypassPermissions.displayName, "最大权限")
     }
 
-    func testSuggestedModelsContainOfficialAliases() {
-        XCTAssertTrue(LaunchProfile.suggestedModels.contains("sonnet"))
-        XCTAssertTrue(LaunchProfile.suggestedModels.contains("opus"))
+    func testSuggestedModelsContainCurrentAliases() {
         XCTAssertTrue(LaunchProfile.suggestedModels.contains("sonnet[1m]"))
-    }
-
-    func testGatewayDefaultConfig() {
-        let gateway = GatewayConfig.makeDefault()
-        XCTAssertEqual(gateway.providerType, .anthropic)
-        XCTAssertEqual(gateway.name, "默认 Anthropic")
-        XCTAssertNotNil(UUID(uuidString: gateway.apiKeyReference))
+        XCTAssertTrue(LaunchProfile.suggestedModels.contains("opus[1m]"))
+        XCTAssertTrue(LaunchProfile.suggestedModels.contains("haiku"))
     }
 
     func testSessionOriginDisplayNames() {
         XCTAssertEqual(SessionOrigin.appLaunched.displayName, "本应用启动")
-        XCTAssertEqual(SessionOrigin.discoveredExternal.displayName, "外部发现")
     }
 }

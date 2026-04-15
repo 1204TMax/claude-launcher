@@ -57,45 +57,43 @@ ClaudeLauncher 是一个原生 macOS 桌面端工具，用来把 **Claude Code**
 - 支持命令预览
 
 ### 3. 全局会话发现
-- 会话管理台不仅显示本应用启动的会话
-- 也会发现并展示这台设备上当前所有 live Claude Code 会话
+- 会话记录页以本机 Claude Code transcript / session 文件为准展示会话
+- 会自动发现并展示这台设备上的 Claude Code 会话
 - 包括手动在终端里打开的 Claude Code 会话
+- 列表展示不再依赖“是否由本应用启动”这个来源区分
 
 ### 4. 会话状态同步
-- 定时扫描当前 live Claude Code 会话
-- 终端中关闭 Claude 会话后，会话列表会自动同步
-- 当前列表只保留 still-live 的会话，已关闭会话会被移除
+- 支持刷新会话记录并重新扫描当前状态
+- 已打开会话会显示 `已打开` 标签
+- 已关闭会话仍可保留在列表中继续操作
+- 会话状态变更后，列表会重新按当前状态同步
 
-### 5. 会话命名
+### 5. 会话记录操作
+- 左侧“会话记录”列表支持：
+  - 置顶 / 取消置顶
+  - 重命名
+  - 重新打开（恢复会话）
+  - 删除
+- 置顶会话会显示 `置顶` 标签，并排序到列表顶部
+- 更多操作菜单同一时刻只会展开一个
+- 点击页面其他位置会自动关闭当前菜单
+
+### 6. 会话命名
 - 支持在工作台中给会话重命名
-- 对 app 启动的会话优先走更可控的命令注入路径
-- 对外部发现的会话尽量同步 rename
-- 外部会话如果没有名字，会显示为：
-  - `未命名 1`
-  - `未命名 2`
-- 如果 Claude Code metadata 中有名字，会同步显示
+- 重命名通过 Claude Code 的 `/rename` 命令执行
+- 对外部发现的会话也会尽量同步 rename
+- 如果 Claude Code transcript / metadata 中已有名字，会优先展示该名字
 
-### 6. 会话详情面板
-- 查看当前会话的：
-  - 名称
-  - 来源（本应用启动 / 外部发现）
-  - 状态
-  - 工作目录
-  - Claude 当前名称
-  - PID / SessionID
-  - 最近同步时间
-- 可编辑说明（notes）
-- 可生成摘要占位
-
-### 7. 关闭会话
-- 可以在会话管理台中真正关闭对应 Claude Code 会话
-- 不是仅在 UI 里移除，而是实际终止对应进程
+### 7. 重新打开与关闭会话
+- 删除会先尝试终止对应 Claude Code 会话，再从列表移除
+- 对已关闭会话支持“重新打开”
+- 重新打开会基于原会话的 `cwd` + `sessionID` 调用 Claude Code `--resume` 恢复会话
 
 ### 8. 工作台界面
 当前主界面已经按“工作台”思路组织成三块：
 - 左栏：配置与批量启动
-- 中栏：当前会话列表
-- 右栏：当前会话详情
+- 中栏：会话记录列表
+- 右栏：当前会话 transcript / 对话内容
 
 顶部还有总览栏，显示：
 - Live 会话数
@@ -249,6 +247,37 @@ xcodebuild -project claude-launcher.xcodeproj -scheme ClaudeLauncher -configurat
 ```bash
 cd /Users/dashan/Documents/dev/claude-launcher
 xcodebuild -project claude-launcher.xcodeproj -scheme ClaudeLauncher -configuration Debug test
+```
+
+---
+
+## 如何生成 DMG 安装包
+
+```bash
+cd /Users/dashan/Documents/dev/claude-launcher
+xcodegen generate
+bash scripts/package-dmg.sh
+```
+
+生成完成后，安装包会输出到：
+
+```bash
+dist/*.dmg
+```
+
+当前默认生成的是**未签名、未公证**的 DMG。
+
+这意味着：
+- 别人下载后可以看到并拖拽安装
+- 但第一次打开时，macOS 可能会提示“无法验证开发者”
+- 这时可以通过右键打开，或在系统设置中允许继续打开
+
+如果后续你配置了 `Developer ID Application` 证书和 notarization，也可以通过环境变量启用：
+
+```bash
+SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
+NOTARY_PROFILE="your-notary-profile" \
+bash scripts/package-dmg.sh
 ```
 
 ---

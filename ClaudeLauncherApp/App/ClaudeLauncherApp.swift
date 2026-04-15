@@ -6,17 +6,9 @@ struct ClaudeLauncherApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView()
+            AppShellView()
                 .environmentObject(appModel)
-                .frame(minWidth: 1180, minHeight: 760)
-        }
-        .commands {
-            CommandGroup(after: .newItem) {
-                Button("新建配置") {
-                    appModel.createProfile()
-                }
-                .keyboardShortcut("n")
-            }
+                .frame(minWidth: 520, minHeight: 620)
         }
     }
 }
