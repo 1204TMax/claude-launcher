@@ -11,7 +11,8 @@ ClaudeLauncher 是一个原生 macOS 桌面端工具，用来把 **Claude Code**
 ## 官网与下载
 
 - 官网：`https://cclauncher.chattcy.top`
-- 最新下载：`https://cclauncher.chattcy.top/ClaudeLauncher-1.0.2.dmg`
+- 最新下载：`https://cclauncher.chattcy.top/ClaudeLauncher-1.0.5.dmg`
+- 当前 Release：`1.0.5`
 - 官网仓库：`https://github.com/1204TMax/claude-launcher-site`
 
 ---
@@ -50,8 +51,8 @@ ClaudeLauncher 是一个原生 macOS 桌面端工具，用来把 **Claude Code**
   - 附加上下文目录
   - 权限模式（Permission Mode）
   - 启动模式（Launch Mode）
-  - 思考深度（Thinking Depth）
-  - 模型（支持下拉和自定义输入）
+  - 思考深度（Thinking Depth，支持 `high`、`xhigh`、`max` 等；其中 `xhigh` 位于 `high` 与 `max` 之间，当前模型都支持这些档位）
+  - 模型（支持下拉和自定义输入；模型名应带版本号，如 `Opus 4.7`、`Sonnet 4.6`）
   - 会话命名模板
   - 启动后首条消息
   - 附加系统提示词
@@ -107,6 +108,22 @@ ClaudeLauncher 是一个原生 macOS 桌面端工具，用来把 **Claude Code**
 - 空闲数量
 - 最近同步时间
 
+### 9. 基础产品埋点
+- 已接入 Firebase Analytics
+- 当前会记录：
+  - `first_launch`
+  - `app_open`
+  - `session_list_refreshed`
+  - `session_launch_requested`
+  - `session_launch_succeeded`
+  - `session_launch_failed`
+  - `session_reopen`
+  - `session_renamed`
+  - `session_terminated`
+  - `session_deleted_or_hidden`
+  - `session_pin_toggled`
+- 使用匿名 `install_id` 做设备级去重，不上传 transcript、prompt 或工作目录明文
+
 ---
 
 ## 技术栈
@@ -129,9 +146,13 @@ ClaudeLauncher 是一个原生 macOS 桌面端工具，用来把 **Claude Code**
 
 ### 配置与存储
 - **Application Support JSON 存储**
-  - 保存 profiles / sessions / gateways 等非敏感配置
+  - 保存 profiles / sessions / analytics state / analytics queue 等非敏感配置
 - **Keychain**
-  - 保存 API key / token 等敏感信息
+  - 保存匿名 install_id 与其他敏感信息
+
+### 分析与埋点
+- **Firebase Analytics**
+  - 用于统计安装量近似值、活跃用户与核心会话行为事件
 
 ---
 
@@ -203,26 +224,34 @@ Claude Code 的 trust prompt 没有公开稳定 API。
 claude-launcher/
 ├── ClaudeLauncherApp/
 │   ├── App/
-│   │   └── ClaudeLauncherApp.swift
+│   │   ├── ClaudeLauncherApp.swift
+│   │   └── GoogleService-Info.plist
 │   ├── Domain/
-│   │   └── Models.swift
+│   │   ├── Models.swift
+│   │   └── AnalyticsModels.swift
 │   ├── Features/
-│   │   └── Profiles/
-│   │       └── RootView.swift
+│   │   ├── Launch/
+│   │   ├── Profiles/
+│   │   ├── Sessions/
+│   │   └── Shell/
 │   ├── Services/
 │   │   ├── AppModel.swift
-│   │   ├── ProfileStore.swift
-│   │   ├── SessionStore.swift
-│   │   ├── GatewayStore.swift
+│   │   ├── AnalyticsQueueStore.swift
+│   │   ├── AnalyticsService.swift
+│   │   ├── AnalyticsStateStore.swift
+│   │   ├── ClaudeSessionDiscovery.swift
+│   │   ├── FirebaseAnalyticsTransport.swift
+│   │   ├── InstallIdentityService.swift
 │   │   ├── KeychainService.swift
 │   │   ├── LaunchCoordinator.swift
-│   │   ├── SessionMonitor.swift
-│   │   ├── ClaudeSessionDiscovery.swift
+│   │   ├── ProfileStore.swift
+│   │   ├── SessionStore.swift
 │   │   └── StartupAutomationCoordinator.swift
 │   └── Infrastructure/
 │       └── PTY/
 │           └── PTYSession.swift
 ├── ClaudeLauncherTests/
+│   ├── AnalyticsTests.swift
 │   └── ClaudeLauncherTests.swift
 ├── project.yml
 └── README.md

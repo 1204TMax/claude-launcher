@@ -310,13 +310,6 @@ final class LaunchCoordinator {
 
     private func supportedEffortArgument(for profile: LaunchProfile) -> String? {
         guard profile.thinkingDepth != .auto else { return nil }
-
-        let trimmedModel = profile.model.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        if profile.thinkingDepth == .max,
-           !(trimmedModel.contains("opus") || trimmedModel.contains("claude-opus-4-6")) {
-            return ThinkingDepth.high.rawValue
-        }
-
         return profile.thinkingDepth.rawValue
     }
 

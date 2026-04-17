@@ -101,7 +101,9 @@ struct ProfilesWorkspaceView: View {
                         selection: binding(profile, \.model),
                         items: LaunchProfile.suggestedModels,
                         minWidth: runtimeValueWidth
-                    ) { $0 }
+                    ) { id in
+                        LaunchProfile.modelOptions.first(where: { $0.id == id })?.title ?? id
+                    }
                 }
                 .padding(16)
             }

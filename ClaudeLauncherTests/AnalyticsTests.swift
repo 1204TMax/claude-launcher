@@ -5,10 +5,7 @@ final class AnalyticsTests: XCTestCase {
     func testTrackAppLifecycleEmitsFirstLaunchOnlyOnce() {
         let stateStore = InMemoryAnalyticsStateStore()
         let queueStore = InMemoryAnalyticsQueueStore()
-        let installIdentityService = InstallIdentityService(
-            secretStore: InMemorySecretStore(),
-            stateStore: stateStore
-        )
+        let installIdentityService = InstallIdentityService(stateStore: stateStore)
         let analytics = AnalyticsService(
             stateStore: stateStore,
             queueStore: queueStore,
@@ -33,10 +30,7 @@ final class AnalyticsTests: XCTestCase {
         let analytics = AnalyticsService(
             stateStore: stateStore,
             queueStore: queueStore,
-            installIdentityService: InstallIdentityService(
-                secretStore: InMemorySecretStore(),
-                stateStore: stateStore
-            ),
+            installIdentityService: InstallIdentityService(stateStore: stateStore),
             transport: NoopAnalyticsTransport(),
             bundle: .testBundle,
             identityDidChange: { _ in },
@@ -53,9 +47,8 @@ final class AnalyticsTests: XCTestCase {
     }
 
     func testInstallIDRemainsStable() {
-        let secretStore = InMemorySecretStore()
         let stateStore = InMemoryAnalyticsStateStore()
-        let service = InstallIdentityService(secretStore: secretStore, stateStore: stateStore)
+        let service = InstallIdentityService(stateStore: stateStore)
 
         let first = service.installID()
         let second = service.installID()
@@ -86,22 +79,6 @@ private final class InMemoryAnalyticsQueueStore: AnalyticsQueueStore {
 
     override func saveEvents(_ events: [AnalyticsEvent]) throws {
         self.events = events
-    }
-}
-
-private final class InMemorySecretStore: SecretStore {
-    private var storage: [String: String] = [:]
-
-    func saveSecret(_ value: String, for key: String) throws {
-        storage[key] = value
-    }
-
-    func loadSecret(for key: String) -> String? {
-        storage[key]
-    }
-
-    func deleteSecret(for key: String) {
-        storage.removeValue(forKey: key)
     }
 }
 

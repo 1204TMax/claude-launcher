@@ -77,6 +77,7 @@ enum ThinkingDepth: String, Codable, CaseIterable, Identifiable {
     case low
     case medium
     case high
+    case xhigh
     case max
 
     var id: String { rawValue }
@@ -87,11 +88,12 @@ enum ThinkingDepth: String, Codable, CaseIterable, Identifiable {
         case .low: "低"
         case .medium: "中"
         case .high: "高"
+        case .xhigh: "超高"
         case .max: "最大"
         }
     }
 
-    static let launchOptions: [ThinkingDepth] = [.auto, .low, .medium, .high, .max]
+    static let launchOptions: [ThinkingDepth] = [.auto, .low, .medium, .high, .xhigh, .max]
 }
 
 enum TerminalFontPreference: String, Codable, CaseIterable, Identifiable {
@@ -351,9 +353,9 @@ struct LaunchProfile: Identifiable, Codable, Equatable {
     }
 
     static let modelOptions = [
-        LaunchModelOption(id: "haiku", title: "Haiku", subtitle: "轻量高速"),
-        LaunchModelOption(id: "sonnet[1m]", title: "Sonnet 1M", subtitle: "日常主力"),
-        LaunchModelOption(id: "opus[1m]", title: "Opus 1M", subtitle: "复杂任务")
+        LaunchModelOption(id: "haiku", title: "Haiku 4.5", subtitle: "轻量高速"),
+        LaunchModelOption(id: "sonnet[1m]", title: "Sonnet 4.6", subtitle: "日常主力"),
+        LaunchModelOption(id: "opus[1m]", title: "Opus 4.7", subtitle: "复杂任务")
     ]
 
     static let suggestedModels = modelOptions.map(\.id)

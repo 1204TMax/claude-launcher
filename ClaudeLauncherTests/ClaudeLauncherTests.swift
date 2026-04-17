@@ -34,15 +34,24 @@ final class ClaudeLauncherTests: XCTestCase {
         XCTAssertTrue(command.contains("@/tmp/context.md"))
     }
 
-    func testMaxEffortFallsBackToHighForNonOpusModel() {
+    func testMaxEffortIsPassedThroughForNonOpusModel() {
         var profile = LaunchProfile.makeDefault()
         profile.model = "sonnet"
         profile.thinkingDepth = .max
 
         let command = LaunchCoordinator().prepareLaunches(for: profile).first?.shellCommand ?? ""
 
-        XCTAssertTrue(command.contains("--effort 'high'"))
-        XCTAssertFalse(command.contains("--effort 'max'"))
+        XCTAssertTrue(command.contains("--effort 'max'"))
+    }
+
+    func testXHighEffortIsPassedThrough() {
+        var profile = LaunchProfile.makeDefault()
+        profile.model = "sonnet"
+        profile.thinkingDepth = .xhigh
+
+        let command = LaunchCoordinator().prepareLaunches(for: profile).first?.shellCommand ?? ""
+
+        XCTAssertTrue(command.contains("--effort 'xhigh'"))
     }
 
     func testManagedSessionFactoryCopiesProfileSettings() {
@@ -103,10 +112,20 @@ final class ClaudeLauncherTests: XCTestCase {
         XCTAssertEqual(PermissionMode.bypassPermissions.displayName, "最大权限")
     }
 
+    func testThinkingDepthDisplayNames() {
+        XCTAssertEqual(ThinkingDepth.xhigh.displayName, "超高")
+    }
+
     func testSuggestedModelsContainCurrentAliases() {
         XCTAssertTrue(LaunchProfile.suggestedModels.contains("sonnet[1m]"))
         XCTAssertTrue(LaunchProfile.suggestedModels.contains("opus[1m]"))
         XCTAssertTrue(LaunchProfile.suggestedModels.contains("haiku"))
+    }
+
+    func testModelOptionDisplayTitlesUseVersionedNames() {
+        XCTAssertEqual(LaunchProfile.modelOptions.first(where: { $0.id == "haiku" })?.title, "Haiku 4.5")
+        XCTAssertEqual(LaunchProfile.modelOptions.first(where: { $0.id == "sonnet[1m]" })?.title, "Sonnet 4.6")
+        XCTAssertEqual(LaunchProfile.modelOptions.first(where: { $0.id == "opus[1m]" })?.title, "Opus 4.7")
     }
 
     func testSessionOriginDisplayNames() {

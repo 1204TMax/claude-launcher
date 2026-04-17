@@ -1,35 +1,24 @@
 import Foundation
 
 final class InstallIdentityService {
-    private let secretStore: SecretStore
     private let stateStore: AnalyticsStateStore
-    private let installIDKey = "analytics.install_id"
 
-    init(secretStore: SecretStore = KeychainService(), stateStore: AnalyticsStateStore = AnalyticsStateStore()) {
-        self.secretStore = secretStore
+    init(stateStore: AnalyticsStateStore = AnalyticsStateStore()) {
         self.stateStore = stateStore
     }
 
     func installID() -> String {
-        if let existing = secretStore.loadSecret(for: installIDKey), !existing.isEmpty {
-            persistMirror(existing)
+        let state = stateStore.loadState()
+        if let existing = state.installIDMirror, !existing.isEmpty {
             return existing
         }
 
-        var state = stateStore.loadState()
-        if let mirrored = state.installIDMirror, !mirrored.isEmpty {
-            try? secretStore.saveSecret(mirrored, for: installIDKey)
-            return mirrored
-        }
-
         let newValue = UUID().uuidString.lowercased()
-        try? secretStore.saveSecret(newValue, for: installIDKey)
-        state.installIDMirror = newValue
-        try? stateStore.saveState(state)
+        persistInstallID(newValue)
         return newValue
     }
 
-    private func persistMirror(_ value: String) {
+    private func persistInstallID(_ value: String) {
         var state = stateStore.loadState()
         guard state.installIDMirror != value else { return }
         state.installIDMirror = value
