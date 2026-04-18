@@ -214,6 +214,20 @@ final class AppModel: ObservableObject {
         refreshPreview()
     }
 
+    func moveProfile(_ draggedProfileID: LaunchProfile.ID, to targetProfileID: LaunchProfile.ID) {
+        guard draggedProfileID != targetProfileID,
+              let sourceIndex = profiles.firstIndex(where: { $0.id == draggedProfileID }),
+              let targetIndex = profiles.firstIndex(where: { $0.id == targetProfileID }) else {
+            return
+        }
+
+        let profile = profiles.remove(at: sourceIndex)
+        let destinationIndex = sourceIndex < targetIndex ? max(targetIndex - 1, 0) : targetIndex
+        profiles.insert(profile, at: destinationIndex)
+        persistProfiles()
+        refreshPreview()
+    }
+
     func selectProfile(_ profileID: LaunchProfile.ID?) {
         selectedProfileID = profileID
         syncLaunchCountInputFromSelectedProfile()

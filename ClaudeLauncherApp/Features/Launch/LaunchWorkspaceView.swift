@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 private enum ProfileEditorMode: Equatable {
     case rename(LaunchProfile.ID)
@@ -16,6 +17,44 @@ private struct ProfileMenuAnchorPreferenceKey: PreferenceKey {
     }
 }
 
+private struct ProfileRowDropDelegate: DropDelegate {
+    let profileID: LaunchProfile.ID
+    let canReorder: Bool
+    let moveProfile: (LaunchProfile.ID, LaunchProfile.ID) -> Void
+    @Binding var draggingProfileID: LaunchProfile.ID?
+    @Binding var dropTargetProfileID: LaunchProfile.ID?
+
+    func dropEntered(info: DropInfo) {
+        guard canReorder,
+              let draggingProfileID,
+              draggingProfileID != profileID else {
+            return
+        }
+        dropTargetProfileID = profileID
+        moveProfile(draggingProfileID, profileID)
+    }
+
+    func dropExited(info: DropInfo) {
+        if dropTargetProfileID == profileID {
+            dropTargetProfileID = nil
+        }
+    }
+
+    func validateDrop(info: DropInfo) -> Bool {
+        canReorder && draggingProfileID != nil
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        dropTargetProfileID = nil
+        draggingProfileID = nil
+        return true
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+}
+
 struct LaunchWorkspaceView: View {
     @EnvironmentObject private var appModel: AppModel
     @State private var isProfilePanelExpanded = false
@@ -25,6 +64,8 @@ struct LaunchWorkspaceView: View {
     @State private var deletingProfileID: LaunchProfile.ID?
     @State private var profileMenuAnchorFrame: CGRect = .zero
     @State private var hoveredProfileID: LaunchProfile.ID?
+    @State private var draggingProfileID: LaunchProfile.ID?
+    @State private var dropTargetProfileID: LaunchProfile.ID?
 
     private var selectedProfile: LaunchProfile? { appModel.selectedProfile }
     private let trailingControlWidth: CGFloat = 168
@@ -542,7 +583,13 @@ struct LaunchWorkspaceView: View {
     private func profileInlineRow(_ profile: LaunchProfile) -> some View {
         let isCurrent = appModel.selectedProfileID == profile.id
         let isHovering = hoveredProfileID == profile.id
+        let isDragging = draggingProfileID == profile.id
+        let isDropTarget = dropTargetProfileID == profile.id
+        let canReorder = profileEditorMode == nil && appModel.profiles.count > 1
+
         return HStack(alignment: .center, spacing: 8) {
+            dragHandle(for: profile, enabled: canReorder)
+
             Button {
                 appModel.selectProfile(profile.id)
                 closeProfilePanel()
@@ -582,22 +629,48 @@ struct LaunchWorkspaceView: View {
                     showDeleteConfirmation = true
                 }
             }
+            .allowsHitTesting(!isDragging)
+            .opacity(isDragging ? 0.5 : 1)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
-        .background(rowBackground(isCurrent: isCurrent, isHovering: isHovering))
+        .background(rowBackground(isCurrent: isCurrent, isHovering: isHovering, isDropTarget: isDropTarget))
         .overlay(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(rowBorderColor(isCurrent: isCurrent, isHovering: isHovering), lineWidth: isCurrent || isHovering ? 1 : 0)
+                .stroke(rowBorderColor(isCurrent: isCurrent, isHovering: isHovering, isDropTarget: isDropTarget), lineWidth: isCurrent || isHovering || isDropTarget ? 1 : 0)
         )
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .opacity(isDragging ? 0.72 : 1)
         .onHover { hovering in
+            guard draggingProfileID == nil else { return }
             if hovering {
                 hoveredProfileID = profile.id
             } else if hoveredProfileID == profile.id {
                 hoveredProfileID = nil
             }
         }
+        .onDrop(of: [UTType.text], delegate: ProfileRowDropDelegate(
+            profileID: profile.id,
+            canReorder: canReorder,
+            moveProfile: appModel.moveProfile,
+            draggingProfileID: $draggingProfileID,
+            dropTargetProfileID: $dropTargetProfileID
+        ))
+    }
+
+    private func dragHandle(for profile: LaunchProfile, enabled: Bool) -> some View {
+        Image(systemName: "line.3.horizontal")
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(enabled ? LauncherTheme.secondaryText : LauncherTheme.tertiaryText)
+            .frame(width: 18, height: 28)
+            .contentShape(Rectangle())
+            .opacity(enabled ? 1 : 0.45)
+            .allowsHitTesting(enabled)
+            .onDrag {
+                draggingProfileID = profile.id
+                dropTargetProfileID = nil
+                return NSItemProvider(object: profile.id.uuidString as NSString)
+            }
     }
 
     private func inlineAction(_ title: String, isDestructive: Bool = false, action: @escaping () -> Void) -> some View {
@@ -609,12 +682,18 @@ struct LaunchWorkspaceView: View {
         .buttonStyle(.plain)
     }
 
-    private func rowBackground(isCurrent: Bool, isHovering: Bool) -> some View {
+    private func rowBackground(isCurrent: Bool, isHovering: Bool, isDropTarget: Bool) -> some View {
         RoundedRectangle(cornerRadius: 10, style: .continuous)
-            .fill(isCurrent ? LauncherTheme.blueTint.opacity(0.16) : (isHovering ? Color.black.opacity(0.07) : Color.clear))
+            .fill(
+                isDropTarget ? LauncherTheme.blueTint.opacity(0.12) :
+                (isCurrent ? LauncherTheme.blueTint.opacity(0.16) : (isHovering ? Color.black.opacity(0.07) : Color.clear))
+            )
     }
 
-    private func rowBorderColor(isCurrent: Bool, isHovering: Bool) -> Color {
+    private func rowBorderColor(isCurrent: Bool, isHovering: Bool, isDropTarget: Bool) -> Color {
+        if isDropTarget {
+            return LauncherTheme.blueTint.opacity(0.72)
+        }
         if isCurrent {
             return LauncherTheme.blueTint.opacity(0.9)
         }
@@ -640,6 +719,8 @@ struct LaunchWorkspaceView: View {
         isProfilePanelExpanded = false
         profileEditorMode = nil
         hoveredProfileID = nil
+        draggingProfileID = nil
+        dropTargetProfileID = nil
     }
 
     private func fieldSection<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
