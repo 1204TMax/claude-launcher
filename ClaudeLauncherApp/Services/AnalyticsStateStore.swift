@@ -15,8 +15,8 @@ class AnalyticsStateStore {
     }
 
     func loadState() -> AnalyticsState {
-        let url = storageURL()
-        guard fileManager.fileExists(atPath: url.path) else {
+        let candidateURLs = [storageURL(appName: "CClauncher"), storageURL(appName: "ClaudeLauncher")]
+        guard let url = candidateURLs.first(where: { fileManager.fileExists(atPath: $0.path) }) else {
             return AnalyticsState()
         }
 
@@ -35,12 +35,12 @@ class AnalyticsStateStore {
         try data.write(to: url, options: .atomic)
     }
 
-    private func storageURL() -> URL {
-        applicationSupportDirectory().appendingPathComponent("analytics-state.json")
+    private func storageURL(appName: String = "CClauncher") -> URL {
+        applicationSupportDirectory(appName: appName).appendingPathComponent("analytics-state.json")
     }
 
-    private func applicationSupportDirectory() -> URL {
+    private func applicationSupportDirectory(appName: String) -> URL {
         let base = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        return base.appendingPathComponent("ClaudeLauncher", isDirectory: true)
+        return base.appendingPathComponent(appName, isDirectory: true)
     }
 }

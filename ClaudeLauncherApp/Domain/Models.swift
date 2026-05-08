@@ -1,5 +1,124 @@
 import Foundation
 
+enum CLIKind: String, Codable, CaseIterable, Identifiable {
+    case claude
+    case gemini
+    case codex
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .claude: "Claude"
+        case .gemini: "Gemini"
+        case .codex: "Codex"
+        }
+    }
+
+    var executableName: String {
+        switch self {
+        case .claude: "claude"
+        case .gemini: "gemini"
+        case .codex: "codex"
+        }
+    }
+
+    var capabilities: CLICapabilities {
+        switch self {
+        case .claude:
+            return CLICapabilities(
+                modelOptions: [
+                    LaunchModelOption(id: "haiku", title: "Haiku 4.5", subtitle: "轻量高速"),
+                    LaunchModelOption(id: "sonnet[1m]", title: "Sonnet 4.6", subtitle: "日常主力"),
+                    LaunchModelOption(id: "opus[1m]", title: "Opus 4.7", subtitle: "复杂任务")
+                ],
+                permissionOptions: [.default, .acceptEdits, .plan, .auto, .bypassPermissions],
+                thinkingDepthOptions: [.auto, .low, .medium, .high, .xhigh, .max],
+                supportsLaunchMode: true,
+                supportsAdditionalDirectories: true,
+                supportsAppendSystemPrompt: true,
+                supportsNativeSessionRename: true,
+                transcriptAvailabilityNote: nil
+            )
+        case .gemini:
+            return CLICapabilities(
+                modelOptions: [
+                    LaunchModelOption(id: "gemini-3.1-pro-preview", title: "Gemini 3.1 Pro Preview", subtitle: "当前主力"),
+                    LaunchModelOption(id: "gemini-3-flash-preview", title: "Gemini 3 Flash Preview", subtitle: "日常主力"),
+                    LaunchModelOption(id: "gemini-3.1-flash-lite-preview", title: "Gemini 3.1 Flash Lite Preview", subtitle: "轻量高速")
+                ],
+                permissionOptions: [.default, .acceptEdits, .plan, .auto],
+                thinkingDepthOptions: [.auto],
+                supportsLaunchMode: false,
+                supportsAdditionalDirectories: true,
+                supportsAppendSystemPrompt: false,
+                supportsNativeSessionRename: false,
+                transcriptAvailabilityNote: nil
+            )
+        case .codex:
+            return CLICapabilities(
+                modelOptions: [
+                    LaunchModelOption(id: "gpt-5.5", title: "gpt-5.5", subtitle: "current"),
+                    LaunchModelOption(id: "gpt-5.4", title: "gpt-5.4", subtitle: "everyday coding"),
+                    LaunchModelOption(id: "gpt-5.4-mini", title: "gpt-5.4-mini", subtitle: "small and fast"),
+                    LaunchModelOption(id: "gpt-5.3-codex", title: "gpt-5.3-codex", subtitle: "coding optimized"),
+                    LaunchModelOption(id: "gpt-5.2", title: "gpt-5.2", subtitle: "long-running agents")
+                ],
+                permissionOptions: [.default, .untrusted, .never, .bypassPermissions],
+                thinkingDepthOptions: [.auto],
+                supportsLaunchMode: false,
+                supportsAdditionalDirectories: true,
+                supportsAppendSystemPrompt: false,
+                supportsNativeSessionRename: false,
+                transcriptAvailabilityNote: "当前仅支持读取 Codex 的用户输入历史。"
+            )
+        }
+    }
+
+    var defaultModel: String {
+        capabilities.modelOptions.first?.id ?? ""
+    }
+}
+
+struct CLICapabilities: Equatable {
+    let modelOptions: [LaunchModelOption]
+    let permissionOptions: [PermissionMode]
+    let thinkingDepthOptions: [ThinkingDepth]
+    let supportsLaunchMode: Bool
+    let supportsAdditionalDirectories: Bool
+    let supportsAppendSystemPrompt: Bool
+    let supportsNativeSessionRename: Bool
+    let transcriptAvailabilityNote: String?
+}
+
+enum LaunchTerminalApp: String, Codable, CaseIterable, Identifiable {
+    case terminal
+    case ghostty
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .terminal: "Terminal"
+        case .ghostty: "Ghostty"
+        }
+    }
+}
+
+enum GhosttyLaunchBehavior: String, Codable, CaseIterable, Identifiable {
+    case mergeIntoExistingWindow
+    case newWindow
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .mergeIntoExistingWindow: "并入已有窗口"
+        case .newWindow: "新窗口打开"
+        }
+    }
+}
+
 enum PermissionMode: String, Codable, CaseIterable, Identifiable {
     case `default`
     case auto
@@ -7,55 +126,44 @@ enum PermissionMode: String, Codable, CaseIterable, Identifiable {
     case dontAsk
     case bypassPermissions
     case plan
+    case untrusted
+    case never
 
     var id: String { rawValue }
 
     var displayName: String {
         switch self {
-        case .default: "每次询问"
-        case .auto: "自动模式"
+        case .default: "按需询问"
         case .acceptEdits: "允许编辑"
-        case .dontAsk: "不询问"
-        case .bypassPermissions: "最大权限"
         case .plan: "只读模式"
-        }
-    }
-
-    var commandText: String {
-        switch self {
-        case .default:
-            return "--permission-mode default"
-        case .acceptEdits:
-            return "--permission-mode acceptEdits"
-        case .plan:
-            return "--permission-mode plan"
-        case .auto:
-            return "--permission-mode auto"
-        case .bypassPermissions:
-            return "--dangerously-skip-permissions"
-        case .dontAsk:
-            return "--permission-mode dontAsk"
+        case .auto: "全自动"
+        case .bypassPermissions: "最大权限"
+        case .dontAsk: "白名单模式"
+        case .untrusted: "仅信任命令"
+        case .never: "从不询问"
         }
     }
 
     var helpText: String {
         switch self {
         case .default:
-            return "首次使用工具时询问确认"
+            return "在关键操作前询问确认。"
         case .acceptEdits:
-            return "自动接受文件修改，其余仍询问"
+            return "自动接受文件编辑，其余操作仍询问。"
         case .plan:
-            return "仅分析规划，不写入任何文件"
+            return "只做分析与规划，不执行写入。"
         case .auto:
-            return "自动批准所有操作（预览版）"
+            return "自动批准支持范围内的操作。"
         case .bypassPermissions:
-            return "跳过所有权限检查，完全自动执行"
+            return "跳过审批与沙箱保护，仅适合受控环境。"
         case .dontAsk:
-            return "仅允许运行白名单工具"
+            return "仅运行允许列表中的工具。"
+        case .untrusted:
+            return "仅信任只读或安全命令。"
+        case .never:
+            return "执行命令时不再请求人工确认。"
         }
     }
-
-    static let launchOptions: [PermissionMode] = [.default, .acceptEdits, .plan, .auto, .bypassPermissions]
 }
 
 enum LaunchMode: String, Codable, CaseIterable, Identifiable {
@@ -92,8 +200,6 @@ enum ThinkingDepth: String, Codable, CaseIterable, Identifiable {
         case .max: "最大"
         }
     }
-
-    static let launchOptions: [ThinkingDepth] = [.auto, .low, .medium, .high, .xhigh, .max]
 }
 
 enum TerminalFontPreference: String, Codable, CaseIterable, Identifiable {
@@ -221,6 +327,40 @@ enum AppSection: String, CaseIterable, Identifiable {
     }
 }
 
+enum TranscriptRole: String, Equatable {
+    case user
+    case assistant
+    case system
+}
+
+struct TranscriptMessage: Identifiable, Equatable {
+    let id: String
+    let role: TranscriptRole
+    let text: String
+    let timestamp: Date?
+}
+
+struct DiscoveredSession: Identifiable, Equatable {
+    let id: String
+    let cliKind: CLIKind
+    let sessionID: String
+    let name: String?
+    let cwd: String
+    let startedAt: Date?
+    let lastActivityAt: Date
+    let preview: String
+    let isLive: Bool
+    let pid: Int32?
+    let tty: String?
+    let transcriptAvailabilityNote: String?
+
+    var normalizedName: String? {
+        guard let name else { return nil }
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
 struct DiscoveredSessionMetadata: Codable, Equatable {
     var customName: String?
     var isPinned: Bool
@@ -233,7 +373,7 @@ struct DiscoveredSessionMetadata: Codable, Equatable {
     }
 }
 
-struct LaunchModelOption: Identifiable, Hashable {
+struct LaunchModelOption: Identifiable, Hashable, Equatable {
     let id: String
     let title: String
     let subtitle: String
@@ -241,11 +381,14 @@ struct LaunchModelOption: Identifiable, Hashable {
 
 struct LaunchProfile: Identifiable, Codable, Equatable {
     var id: UUID
+    var cliKind: CLIKind
     var name: String
     var workingDirectory: String
     var additionalDirectories: [String]
     var contextFilePaths: [String]
     var batchCount: Int
+    var launchTerminalApp: LaunchTerminalApp
+    var ghosttyLaunchBehavior: GhosttyLaunchBehavior
     var permissionMode: PermissionMode
     var launchMode: LaunchMode
     var thinkingDepth: ThinkingDepth
@@ -263,11 +406,14 @@ struct LaunchProfile: Identifiable, Codable, Equatable {
 
     enum CodingKeys: String, CodingKey {
         case id
+        case cliKind
         case name
         case workingDirectory
         case additionalDirectories
         case contextFilePaths
         case batchCount
+        case launchTerminalApp
+        case ghosttyLaunchBehavior
         case permissionMode
         case launchMode
         case thinkingDepth
@@ -286,11 +432,14 @@ struct LaunchProfile: Identifiable, Codable, Equatable {
 
     init(
         id: UUID,
+        cliKind: CLIKind,
         name: String,
         workingDirectory: String,
         additionalDirectories: [String],
         contextFilePaths: [String],
         batchCount: Int,
+        launchTerminalApp: LaunchTerminalApp,
+        ghosttyLaunchBehavior: GhosttyLaunchBehavior,
         permissionMode: PermissionMode,
         launchMode: LaunchMode,
         thinkingDepth: ThinkingDepth,
@@ -307,11 +456,14 @@ struct LaunchProfile: Identifiable, Codable, Equatable {
         updatedAt: Date
     ) {
         self.id = id
+        self.cliKind = cliKind
         self.name = name
         self.workingDirectory = workingDirectory
         self.additionalDirectories = additionalDirectories
         self.contextFilePaths = contextFilePaths
         self.batchCount = batchCount
+        self.launchTerminalApp = launchTerminalApp
+        self.ghosttyLaunchBehavior = ghosttyLaunchBehavior
         self.permissionMode = permissionMode
         self.launchMode = launchMode
         self.thinkingDepth = thinkingDepth
@@ -331,15 +483,18 @@ struct LaunchProfile: Identifiable, Codable, Equatable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
+        cliKind = try container.decodeIfPresent(CLIKind.self, forKey: .cliKind) ?? .claude
         name = try container.decode(String.self, forKey: .name)
         workingDirectory = try container.decode(String.self, forKey: .workingDirectory)
         additionalDirectories = try container.decodeIfPresent([String].self, forKey: .additionalDirectories) ?? []
         contextFilePaths = try container.decodeIfPresent([String].self, forKey: .contextFilePaths) ?? []
         batchCount = try container.decodeIfPresent(Int.self, forKey: .batchCount) ?? 1
+        launchTerminalApp = try container.decodeIfPresent(LaunchTerminalApp.self, forKey: .launchTerminalApp) ?? .terminal
+        ghosttyLaunchBehavior = try container.decodeIfPresent(GhosttyLaunchBehavior.self, forKey: .ghosttyLaunchBehavior) ?? .mergeIntoExistingWindow
         permissionMode = try container.decodeIfPresent(PermissionMode.self, forKey: .permissionMode) ?? .default
         launchMode = try container.decodeIfPresent(LaunchMode.self, forKey: .launchMode) ?? .standard
         thinkingDepth = try container.decodeIfPresent(ThinkingDepth.self, forKey: .thinkingDepth) ?? .auto
-        model = try container.decodeIfPresent(String.self, forKey: .model) ?? "sonnet[1m]"
+        model = try container.decodeIfPresent(String.self, forKey: .model) ?? cliKind.defaultModel
         startupRenameEnabled = try container.decodeIfPresent(Bool.self, forKey: .startupRenameEnabled) ?? false
         startupRenameTemplate = try container.decodeIfPresent(String.self, forKey: .startupRenameTemplate) ?? ""
         startupMessage = try container.decodeIfPresent(String.self, forKey: .startupMessage) ?? ""
@@ -352,26 +507,29 @@ struct LaunchProfile: Identifiable, Codable, Equatable {
         updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? Date()
     }
 
-    static let modelOptions = [
-        LaunchModelOption(id: "haiku", title: "Haiku 4.5", subtitle: "轻量高速"),
-        LaunchModelOption(id: "sonnet[1m]", title: "Sonnet 4.6", subtitle: "日常主力"),
-        LaunchModelOption(id: "opus[1m]", title: "Opus 4.7", subtitle: "复杂任务")
-    ]
+    static func modelOptions(for cliKind: CLIKind) -> [LaunchModelOption] {
+        cliKind.capabilities.modelOptions
+    }
 
-    static let suggestedModels = modelOptions.map(\.id)
+    static func suggestedModels(for cliKind: CLIKind) -> [String] {
+        modelOptions(for: cliKind).map(\.id)
+    }
 
     static func makeDefault() -> LaunchProfile {
         LaunchProfile(
             id: UUID(),
+            cliKind: .claude,
             name: "新配置",
             workingDirectory: NSHomeDirectory(),
             additionalDirectories: [],
             contextFilePaths: [],
             batchCount: 1,
+            launchTerminalApp: .terminal,
+            ghosttyLaunchBehavior: .mergeIntoExistingWindow,
             permissionMode: .default,
             launchMode: .standard,
             thinkingDepth: .auto,
-            model: "sonnet[1m]",
+            model: CLIKind.claude.defaultModel,
             startupRenameEnabled: false,
             startupRenameTemplate: "",
             startupMessage: "",
@@ -396,13 +554,14 @@ struct LaunchProfile: Identifiable, Codable, Equatable {
 
 struct ManagedSession: Identifiable, Codable, Equatable {
     var id: UUID
+    var cliKind: CLIKind
     var origin: SessionOrigin
     var profileID: UUID?
     var profileName: String
     var displayName: String
     var launchedName: String
-    var claudeSessionName: String?
-    var claudeSessionID: String?
+    var sessionName: String?
+    var sessionID: String?
     var pid: Int32?
     var notes: String
     var summary: String
@@ -425,6 +584,173 @@ struct ManagedSession: Identifiable, Codable, Equatable {
     var canTerminate: Bool
     var renameCommandTemplate: String?
 
+    enum CodingKeys: String, CodingKey {
+        case id
+        case cliKind
+        case origin
+        case profileID
+        case profileName
+        case displayName
+        case launchedName
+        case sessionName
+        case sessionID
+        case claudeSessionName
+        case claudeSessionID
+        case pid
+        case notes
+        case summary
+        case summaryStatus
+        case workingDirectory
+        case model
+        case permissionMode
+        case launchMode
+        case thinkingDepth
+        case command
+        case createdAt
+        case updatedAt
+        case lastActivityAt
+        case status
+        case isPinned
+        case errorMessage
+        case terminalWindowID
+        case terminalTabIndex
+        case canSendCommands
+        case canTerminate
+        case renameCommandTemplate
+    }
+
+    init(
+        id: UUID,
+        cliKind: CLIKind,
+        origin: SessionOrigin,
+        profileID: UUID?,
+        profileName: String,
+        displayName: String,
+        launchedName: String,
+        sessionName: String?,
+        sessionID: String?,
+        pid: Int32?,
+        notes: String,
+        summary: String,
+        summaryStatus: SummaryStatus,
+        workingDirectory: String,
+        model: String,
+        permissionMode: PermissionMode,
+        launchMode: LaunchMode,
+        thinkingDepth: ThinkingDepth,
+        command: String,
+        createdAt: Date,
+        updatedAt: Date,
+        lastActivityAt: Date,
+        status: ManagedSessionStatus,
+        isPinned: Bool?,
+        errorMessage: String?,
+        terminalWindowID: Int?,
+        terminalTabIndex: Int?,
+        canSendCommands: Bool,
+        canTerminate: Bool,
+        renameCommandTemplate: String?
+    ) {
+        self.id = id
+        self.cliKind = cliKind
+        self.origin = origin
+        self.profileID = profileID
+        self.profileName = profileName
+        self.displayName = displayName
+        self.launchedName = launchedName
+        self.sessionName = sessionName
+        self.sessionID = sessionID
+        self.pid = pid
+        self.notes = notes
+        self.summary = summary
+        self.summaryStatus = summaryStatus
+        self.workingDirectory = workingDirectory
+        self.model = model
+        self.permissionMode = permissionMode
+        self.launchMode = launchMode
+        self.thinkingDepth = thinkingDepth
+        self.command = command
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.lastActivityAt = lastActivityAt
+        self.status = status
+        self.isPinned = isPinned
+        self.errorMessage = errorMessage
+        self.terminalWindowID = terminalWindowID
+        self.terminalTabIndex = terminalTabIndex
+        self.canSendCommands = canSendCommands
+        self.canTerminate = canTerminate
+        self.renameCommandTemplate = renameCommandTemplate
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        cliKind = try container.decodeIfPresent(CLIKind.self, forKey: .cliKind) ?? .claude
+        origin = try container.decodeIfPresent(SessionOrigin.self, forKey: .origin) ?? .appLaunched
+        profileID = try container.decodeIfPresent(UUID.self, forKey: .profileID)
+        profileName = try container.decodeIfPresent(String.self, forKey: .profileName) ?? "会话"
+        displayName = try container.decodeIfPresent(String.self, forKey: .displayName) ?? "会话"
+        launchedName = try container.decodeIfPresent(String.self, forKey: .launchedName) ?? displayName
+        sessionName = try container.decodeIfPresent(String.self, forKey: .sessionName) ?? container.decodeIfPresent(String.self, forKey: .claudeSessionName)
+        sessionID = try container.decodeIfPresent(String.self, forKey: .sessionID) ?? container.decodeIfPresent(String.self, forKey: .claudeSessionID)
+        pid = try container.decodeIfPresent(Int32.self, forKey: .pid)
+        notes = try container.decodeIfPresent(String.self, forKey: .notes) ?? ""
+        summary = try container.decodeIfPresent(String.self, forKey: .summary) ?? ""
+        summaryStatus = try container.decodeIfPresent(SummaryStatus.self, forKey: .summaryStatus) ?? .none
+        workingDirectory = try container.decodeIfPresent(String.self, forKey: .workingDirectory) ?? NSHomeDirectory()
+        model = try container.decodeIfPresent(String.self, forKey: .model) ?? cliKind.defaultModel
+        permissionMode = try container.decodeIfPresent(PermissionMode.self, forKey: .permissionMode) ?? .default
+        launchMode = try container.decodeIfPresent(LaunchMode.self, forKey: .launchMode) ?? .standard
+        thinkingDepth = try container.decodeIfPresent(ThinkingDepth.self, forKey: .thinkingDepth) ?? .auto
+        command = try container.decodeIfPresent(String.self, forKey: .command) ?? ""
+        createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
+        updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? createdAt
+        lastActivityAt = try container.decodeIfPresent(Date.self, forKey: .lastActivityAt) ?? updatedAt
+        status = try container.decodeIfPresent(ManagedSessionStatus.self, forKey: .status) ?? .running
+        isPinned = try container.decodeIfPresent(Bool.self, forKey: .isPinned)
+        errorMessage = try container.decodeIfPresent(String.self, forKey: .errorMessage)
+        terminalWindowID = try container.decodeIfPresent(Int.self, forKey: .terminalWindowID)
+        terminalTabIndex = try container.decodeIfPresent(Int.self, forKey: .terminalTabIndex)
+        canSendCommands = try container.decodeIfPresent(Bool.self, forKey: .canSendCommands) ?? false
+        canTerminate = try container.decodeIfPresent(Bool.self, forKey: .canTerminate) ?? false
+        renameCommandTemplate = try container.decodeIfPresent(String.self, forKey: .renameCommandTemplate)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(cliKind, forKey: .cliKind)
+        try container.encode(origin, forKey: .origin)
+        try container.encodeIfPresent(profileID, forKey: .profileID)
+        try container.encode(profileName, forKey: .profileName)
+        try container.encode(displayName, forKey: .displayName)
+        try container.encode(launchedName, forKey: .launchedName)
+        try container.encodeIfPresent(sessionName, forKey: .sessionName)
+        try container.encodeIfPresent(sessionID, forKey: .sessionID)
+        try container.encodeIfPresent(pid, forKey: .pid)
+        try container.encode(notes, forKey: .notes)
+        try container.encode(summary, forKey: .summary)
+        try container.encode(summaryStatus, forKey: .summaryStatus)
+        try container.encode(workingDirectory, forKey: .workingDirectory)
+        try container.encode(model, forKey: .model)
+        try container.encode(permissionMode, forKey: .permissionMode)
+        try container.encode(launchMode, forKey: .launchMode)
+        try container.encode(thinkingDepth, forKey: .thinkingDepth)
+        try container.encode(command, forKey: .command)
+        try container.encode(createdAt, forKey: .createdAt)
+        try container.encode(updatedAt, forKey: .updatedAt)
+        try container.encode(lastActivityAt, forKey: .lastActivityAt)
+        try container.encode(status, forKey: .status)
+        try container.encodeIfPresent(isPinned, forKey: .isPinned)
+        try container.encodeIfPresent(errorMessage, forKey: .errorMessage)
+        try container.encodeIfPresent(terminalWindowID, forKey: .terminalWindowID)
+        try container.encodeIfPresent(terminalTabIndex, forKey: .terminalTabIndex)
+        try container.encode(canSendCommands, forKey: .canSendCommands)
+        try container.encode(canTerminate, forKey: .canTerminate)
+        try container.encodeIfPresent(renameCommandTemplate, forKey: .renameCommandTemplate)
+    }
+
     static func make(
         id: UUID? = nil,
         origin: SessionOrigin,
@@ -433,7 +759,7 @@ struct ManagedSession: Identifiable, Codable, Equatable {
         command: String,
         status: ManagedSessionStatus,
         isPinned: Bool = false,
-        claudeSessionID: String? = nil,
+        sessionID: String? = nil,
         pid: Int32? = nil,
         terminalWindowID: Int? = nil,
         terminalTabIndex: Int? = nil,
@@ -448,13 +774,14 @@ struct ManagedSession: Identifiable, Codable, Equatable {
         let now = Date()
         return ManagedSession(
             id: id ?? UUID(),
+            cliKind: profile?.cliKind ?? .claude,
             origin: origin,
             profileID: profile?.id,
             profileName: profile?.name ?? "会话",
             displayName: displayName,
             launchedName: displayName,
-            claudeSessionName: displayName,
-            claudeSessionID: claudeSessionID,
+            sessionName: displayName,
+            sessionID: sessionID,
             pid: pid,
             notes: "",
             summary: summary,

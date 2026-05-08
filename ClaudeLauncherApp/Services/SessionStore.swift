@@ -15,8 +15,8 @@ final class SessionStore {
     }
 
     func loadSessions() -> [ManagedSession] {
-        let url = sessionsStorageURL()
-        guard fileManager.fileExists(atPath: url.path) else {
+        let candidateURLs = [sessionsStorageURL(appName: "CClauncher"), sessionsStorageURL(appName: "ClaudeLauncher")]
+        guard let url = candidateURLs.first(where: { fileManager.fileExists(atPath: $0.path) }) else {
             return []
         }
 
@@ -36,8 +36,8 @@ final class SessionStore {
     }
 
     func loadDiscoveredSessionMetadata() -> [String: DiscoveredSessionMetadata] {
-        let url = discoveredSessionMetadataStorageURL()
-        guard fileManager.fileExists(atPath: url.path) else {
+        let candidateURLs = [discoveredSessionMetadataStorageURL(appName: "CClauncher"), discoveredSessionMetadataStorageURL(appName: "ClaudeLauncher")]
+        guard let url = candidateURLs.first(where: { fileManager.fileExists(atPath: $0.path) }) else {
             return [:]
         }
 
@@ -56,16 +56,16 @@ final class SessionStore {
         try data.write(to: url, options: .atomic)
     }
 
-    private func baseStorageURL() -> URL {
+    private func baseStorageURL(appName: String = "CClauncher") -> URL {
         let base = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        return base.appendingPathComponent("ClaudeLauncher", isDirectory: true)
+        return base.appendingPathComponent(appName, isDirectory: true)
     }
 
-    private func sessionsStorageURL() -> URL {
-        baseStorageURL().appendingPathComponent("sessions.json")
+    private func sessionsStorageURL(appName: String = "CClauncher") -> URL {
+        baseStorageURL(appName: appName).appendingPathComponent("sessions.json")
     }
 
-    private func discoveredSessionMetadataStorageURL() -> URL {
-        baseStorageURL().appendingPathComponent("discovered-session-metadata.json")
+    private func discoveredSessionMetadataStorageURL(appName: String = "CClauncher") -> URL {
+        baseStorageURL(appName: appName).appendingPathComponent("discovered-session-metadata.json")
     }
 }

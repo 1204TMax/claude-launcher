@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 PROJECT_PATH="$ROOT_DIR/claude-launcher.xcodeproj"
 SCHEME="ClaudeLauncher"
-APP_NAME="ClaudeLauncher"
+APP_NAME="CClauncher"
 BUILD_DIR="$ROOT_DIR/build/release"
 ARCHIVE_PATH="$BUILD_DIR/$APP_NAME.xcarchive"
 STAGING_DIR="$BUILD_DIR/dmg-staging"
@@ -92,7 +92,7 @@ draw.rounded_rectangle((s(56), s(52), s(170), s(86)), radius=s(16), fill=(247, 2
 draw.text((s(92), s(61)), "安装", font=font_badge, fill=badge)
 
 draw.text((s(56), s(104)), "拖到 Applications 文件夹", font=font_title, fill=text_primary)
-draw.text((s(56), s(154)), "将 ClaudeLauncher 拖入 Applications 文件夹即可完成安装。", font=font_body, fill=text_secondary)
+draw.text((s(56), s(154)), "将 CClauncher 拖入 Applications 文件夹即可完成安装。", font=font_body, fill=text_secondary)
 
 start_x, end_x = s(252), s(450)
 center_y = s(276)

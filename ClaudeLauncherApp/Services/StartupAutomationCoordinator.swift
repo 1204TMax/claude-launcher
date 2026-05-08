@@ -11,8 +11,10 @@ final class StartupAutomationCoordinator {
         let renameCommand: String?
         if profile.startupRenameTemplate.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             renameCommand = nil
-        } else {
+        } else if profile.cliKind.capabilities.supportsNativeSessionRename {
             renameCommand = "/rename \(sessionName)"
+        } else {
+            renameCommand = nil
         }
 
         let startupMessage = profile.startupMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty

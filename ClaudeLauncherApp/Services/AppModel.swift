@@ -10,6 +10,7 @@ struct SessionListItem: Identifiable, Equatable {
 
     let id: String
     let source: Source
+    let cliKind: CLIKind
     let title: String
     let sessionID: String?
     let cwd: String
@@ -18,6 +19,21 @@ struct SessionListItem: Identifiable, Equatable {
     let isLive: Bool
     let isClosed: Bool
     let statusText: String?
+    let transcriptAvailabilityNote: String?
+
+    static func == (lhs: SessionListItem, rhs: SessionListItem) -> Bool {
+        lhs.id == rhs.id &&
+        lhs.cliKind == rhs.cliKind &&
+        lhs.title == rhs.title &&
+        lhs.sessionID == rhs.sessionID &&
+        lhs.cwd == rhs.cwd &&
+        lhs.lastActivityAt == rhs.lastActivityAt &&
+        lhs.isPinned == rhs.isPinned &&
+        lhs.isLive == rhs.isLive &&
+        lhs.isClosed == rhs.isClosed &&
+        lhs.statusText == rhs.statusText &&
+        lhs.transcriptAvailabilityNote == rhs.transcriptAvailabilityNote
+    }
 }
 
 @MainActor
@@ -29,14 +45,16 @@ final class AppModel: ObservableObject {
     @Published var commandPreview: String = ""
     @Published var errorMessage: String?
     @Published var launchCountInput: String = "1"
-    @Published var discoveredSessions: [ClaudeTranscriptSession] = []
+    @Published var selectedLaunchTerminalApp: LaunchTerminalApp = .terminal
+    @Published var discoveredSessions: [DiscoveredSession] = []
     @Published var selectedDiscoveredSessionID: String?
-    @Published var selectedTranscriptMessages: [ClaudeTranscriptMessage] = []
+    @Published var selectedTranscriptMessages: [TranscriptMessage] = []
+    @Published var selectedSessionFilterCLI: CLIKind? = nil
     @Published var discoveredSessionMetadata: [String: DiscoveredSessionMetadata] = [:]
     @Published var profileSaveStatus: ProfileSaveStatus = .idle
     @Published var isDiscoveringSessions: Bool = false
 
-    private var allTranscriptMessages: [ClaudeTranscriptMessage] = []
+    private var allTranscriptMessages: [TranscriptMessage] = []
     private var transcriptDisplayCount: Int = 0
     private let transcriptPageSize: Int = 80
 
@@ -44,7 +62,7 @@ final class AppModel: ObservableObject {
     private let sessionStore: SessionStore
     private let launchCoordinator: LaunchCoordinator
     private let startupAutomationCoordinator: StartupAutomationCoordinator
-    private let claudeSessionDiscovery: ClaudeSessionDiscovery
+    private let sessionDiscovery: ClaudeSessionDiscovery
     private let analyticsService: AnalyticsService
     private let profilePersistenceQueue = DispatchQueue(label: "ClaudeLauncher.ProfilePersistence", qos: .utility)
     private let sessionDiscoveryQueue = DispatchQueue(label: "ClaudeLauncher.SessionDiscovery", qos: .utility)
@@ -63,13 +81,14 @@ final class AppModel: ObservableObject {
         self.sessionStore = sessionStore
         self.launchCoordinator = launchCoordinator
         self.startupAutomationCoordinator = startupAutomationCoordinator
-        self.claudeSessionDiscovery = claudeSessionDiscovery
+        self.sessionDiscovery = claudeSessionDiscovery
         self.analyticsService = analyticsService
-        self.profiles = profileStore.loadProfiles()
+        self.profiles = profileStore.loadProfiles().map { Self.normalizedProfile($0) }
         self.sessions = sessionStore.loadSessions().sorted(by: stableSessionSort)
         self.discoveredSessionMetadata = sessionStore.loadDiscoveredSessionMetadata()
         self.selectedProfileID = profiles.first?.id
         self.selectedSessionID = sessions.first?.id
+        syncSelectedLaunchTerminalAppFromSelectedProfile()
         syncLaunchCountInputFromSelectedProfile()
         refreshPreview()
         analyticsService.trackAppLifecycle(
@@ -99,13 +118,49 @@ final class AppModel: ObservableObject {
         return sessions[selectedSessionIndex]
     }
 
-    var selectedDiscoveredSession: ClaudeTranscriptSession? {
+    var selectedDiscoveredSession: DiscoveredSession? {
         guard let selectedDiscoveredSessionID else { return nil }
         return discoveredSessions.first { $0.id == selectedDiscoveredSessionID }
     }
 
+    var selectedCapabilities: CLICapabilities {
+        selectedProfile?.cliKind.capabilities ?? CLIKind.claude.capabilities
+    }
+
+    var selectedModelOptions: [LaunchModelOption] {
+        selectedCapabilities.modelOptions
+    }
+
+    var selectedPermissionOptions: [PermissionMode] {
+        selectedCapabilities.permissionOptions
+    }
+
+    var selectedThinkingDepthOptions: [ThinkingDepth] {
+        selectedCapabilities.thinkingDepthOptions
+    }
+
     var sessionListItems: [SessionListItem] {
-        discoveredSessions.compactMap { session -> SessionListItem? in
+        let managedItems = sessions.map { session in
+            let isLive = resolvedManagedSessionIsLive(session)
+            let statusText = resolvedManagedSessionStatusText(session)
+
+            return SessionListItem(
+                id: "managed-\(session.id.uuidString)",
+                source: .managed(session.id),
+                cliKind: session.cliKind,
+                title: session.displayName,
+                sessionID: session.sessionID,
+                cwd: session.workingDirectory,
+                lastActivityAt: session.lastActivityAt,
+                isPinned: session.isPinned ?? false,
+                isLive: isLive,
+                isClosed: !isLive,
+                statusText: statusText,
+                transcriptAvailabilityNote: "当前为应用内启动会话，右侧展示基础信息。"
+            )
+        }
+
+        let discoveredItems = discoveredSessions.compactMap { session -> SessionListItem? in
             let metadata = discoveredSessionMetadata[session.id] ?? DiscoveredSessionMetadata()
             guard !metadata.isHidden else { return nil }
             let fallbackTitle = session.name?.nonEmpty(or: session.sessionID) ?? session.sessionID
@@ -114,6 +169,7 @@ final class AppModel: ObservableObject {
             return SessionListItem(
                 id: "discovered-\(session.id)",
                 source: .discovered(session.id),
+                cliKind: session.cliKind,
                 title: title,
                 sessionID: session.sessionID,
                 cwd: session.cwd,
@@ -121,10 +177,16 @@ final class AppModel: ObservableObject {
                 isPinned: metadata.isPinned,
                 isLive: session.isLive,
                 isClosed: !session.isLive,
-                statusText: session.isLive ? "已打开" : nil
+                statusText: session.isLive ? "已打开" : nil,
+                transcriptAvailabilityNote: session.transcriptAvailabilityNote
             )
         }
-        .sorted(by: stableSessionListItemSort)
+
+        let combined = managedItems + discoveredItems
+        let filtered = selectedSessionFilterCLI.map { cliKind in
+            combined.filter { $0.cliKind == cliKind }
+        } ?? combined
+        return filtered.sorted(by: stableSessionListItemSort)
     }
 
     var allSessions: [ManagedSession] {
@@ -209,6 +271,8 @@ final class AppModel: ObservableObject {
         } else if selectedProfileID == nil {
             selectedProfileID = profiles.first?.id
         }
+        syncSelectedProfileToCapabilities()
+        syncSelectedLaunchTerminalAppFromSelectedProfile()
         persistProfiles()
         syncLaunchCountInputFromSelectedProfile()
         refreshPreview()
@@ -230,6 +294,8 @@ final class AppModel: ObservableObject {
 
     func selectProfile(_ profileID: LaunchProfile.ID?) {
         selectedProfileID = profileID
+        syncSelectedProfileToCapabilities()
+        syncSelectedLaunchTerminalAppFromSelectedProfile()
         syncLaunchCountInputFromSelectedProfile()
         refreshPreview()
     }
@@ -254,8 +320,8 @@ final class AppModel: ObservableObject {
         transcriptDisplayCount = 0
         selectedTranscriptMessages = []
 
-        sessionDiscoveryQueue.async { [claudeSessionDiscovery] in
-            let messages = claudeSessionDiscovery.loadTranscriptMessages(sessionID: sessionID)
+        sessionDiscoveryQueue.async { [sessionDiscovery] in
+            let messages = sessionDiscovery.loadTranscriptMessages(sessionID: sessionID)
             DispatchQueue.main.async {
                 guard generation == self.transcriptLoadGeneration,
                       self.selectedDiscoveredSessionID == sessionID else {
@@ -269,11 +335,12 @@ final class AppModel: ObservableObject {
     }
 
     func selectSessionListItem(_ item: SessionListItem) {
-        selectedSessionID = nil
         switch item.source {
-        case .managed:
+        case .managed(let sessionID):
+            selectedSessionID = sessionID
             selectDiscoveredSession(nil)
         case .discovered(let sessionID):
+            selectedSessionID = nil
             selectDiscoveredSession(sessionID)
         }
     }
@@ -293,8 +360,8 @@ final class AppModel: ObservableObject {
 
     func isSessionListItemSelected(_ item: SessionListItem) -> Bool {
         switch item.source {
-        case .managed:
-            return false
+        case .managed(let sessionID):
+            return selectedSessionID == sessionID
         case .discovered(let sessionID):
             return selectedDiscoveredSessionID == sessionID
         }
@@ -306,8 +373,8 @@ final class AppModel: ObservableObject {
         isDiscoveringSessions = true
         let startedAt = Date()
 
-        sessionDiscoveryQueue.async { [claudeSessionDiscovery] in
-            let sessions = claudeSessionDiscovery.discoverAllSessions()
+        sessionDiscoveryQueue.async { [sessionDiscovery] in
+            let sessions = sessionDiscovery.discoverAllSessions()
             DispatchQueue.main.async {
                 guard generation == self.sessionDiscoveryGeneration else { return }
 
@@ -400,9 +467,29 @@ final class AppModel: ObservableObject {
     func updateSelectedProfile(_ mutate: (inout LaunchProfile) -> Void) {
         guard let selectedProfileIndex else { return }
         mutate(&profiles[selectedProfileIndex])
+        profiles[selectedProfileIndex] = Self.normalizedProfile(profiles[selectedProfileIndex])
         profiles[selectedProfileIndex].updatedAt = Date()
         persistProfiles()
         refreshPreview()
+    }
+
+    func setSelectedCLIKind(_ cliKind: CLIKind) {
+        updateSelectedProfile { profile in
+            profile.cliKind = cliKind
+        }
+    }
+
+    func setSelectedLaunchTerminalApp(_ terminalApp: LaunchTerminalApp) {
+        selectedLaunchTerminalApp = terminalApp
+        updateSelectedProfile { profile in
+            profile.launchTerminalApp = terminalApp
+        }
+    }
+
+    func setSelectedGhosttyLaunchBehavior(_ behavior: GhosttyLaunchBehavior) {
+        updateSelectedProfile { profile in
+            profile.ghosttyLaunchBehavior = behavior
+        }
     }
 
     func updateLaunchCountInput(_ value: String) {
@@ -462,7 +549,7 @@ final class AppModel: ObservableObject {
 
     func launch(profileID: LaunchProfile.ID?, count: Int?) {
         guard let profile = profileID.flatMap({ id in profiles.first(where: { $0.id == id }) }) ?? selectedProfile else { return }
-        var launchProfile = profile
+        var launchProfile = Self.normalizedProfile(profile)
         launchProfile.batchCount = max(count ?? resolvedLaunchCount, 1)
 
         if let error = launchCoordinator.validate(profile: launchProfile) {
@@ -472,7 +559,8 @@ final class AppModel: ObservableObject {
                 properties: [
                     "profile_id": launchProfile.id.uuidString,
                     "batch_count": String(launchProfile.batchCount),
-                    "error_message": error
+                    "error_message": error,
+                    "cli_kind": launchProfile.cliKind.rawValue
                 ],
                 flushImmediately: true
             )
@@ -488,14 +576,57 @@ final class AppModel: ObservableObject {
                 "batch_count": String(launchProfile.batchCount),
                 "model": launchProfile.model,
                 "permission_mode": launchProfile.permissionMode.rawValue,
-                "launch_mode": launchProfile.launchMode.rawValue
+                "launch_mode": launchProfile.launchMode.rawValue,
+                "ghostty_launch_behavior": launchProfile.ghosttyLaunchBehavior.rawValue,
+                "cli_kind": launchProfile.cliKind.rawValue
             ]
         )
-        for preparation in preparations {
+        let launchResults: [TerminalLaunchResult?]
+        do {
+            if launchProfile.launchTerminalApp == .ghostty,
+               launchProfile.ghosttyLaunchBehavior == .mergeIntoExistingWindow {
+                launchResults = try launchCoordinator.launchInGhosttyMergedIntoExistingWindow(preparations).map(Optional.some)
+            } else {
+                launchResults = try preparations.map { try launchCoordinator.launch($0, in: launchProfile.launchTerminalApp) }.map(Optional.some)
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+            for preparation in preparations {
+                let automationPlan = startupAutomationCoordinator.makePlan(for: launchProfile, sessionName: preparation.sessionName)
+                let session = ManagedSession.make(
+                    origin: .appLaunched,
+                    profile: launchProfile,
+                    displayName: preparation.sessionName,
+                    command: preparation.shellCommand,
+                    status: .failed,
+                    errorMessage: error.localizedDescription,
+                    summary: automationPlan.summaryPlaceholder,
+                    summaryStatus: .placeholder,
+                    canSendCommands: false,
+                    canTerminate: false,
+                    renameCommandTemplate: automationPlan.renameCommand
+                )
+                sessions.insert(session, at: 0)
+                selectedSessionID = session.id
+            }
+            analyticsService.track(
+                name: "session_launch_failed",
+                properties: [
+                    "profile_id": launchProfile.id.uuidString,
+                    "error_message": error.localizedDescription,
+                    "cli_kind": launchProfile.cliKind.rawValue
+                ],
+                flushImmediately: true
+            )
+            persistSessions()
+            return
+        }
+
+        for (index, preparation) in preparations.enumerated() {
             let automationPlan = startupAutomationCoordinator.makePlan(for: launchProfile, sessionName: preparation.sessionName)
-            do {
-                let launchResult = try launchCoordinator.launchInTerminal(preparation)
-                let appliedFontSize = launchProfile.advancedSettingsEnabled ? try? launchCoordinator.applyTerminalAppearance(
+            let launchResult = launchResults[index]
+            if let launchResult {
+                _ = launchProfile.advancedSettingsEnabled && launchProfile.launchTerminalApp == .terminal ? try? launchCoordinator.applyTerminalAppearance(
                     windowID: launchResult.windowID,
                     tabIndex: launchResult.tabIndex,
                     preference: launchProfile.terminalFontPreference,
@@ -511,9 +642,9 @@ final class AppModel: ObservableObject {
                     terminalTabIndex: launchResult.tabIndex,
                     summary: automationPlan.summaryPlaceholder,
                     summaryStatus: .placeholder,
-                    canSendCommands: true,
+                    canSendCommands: launchProfile.cliKind == .claude,
                     canTerminate: false,
-                    renameCommandTemplate: "/rename {name}"
+                    renameCommandTemplate: automationPlan.renameCommand
                 )
                 sessions.insert(session, at: 0)
                 selectedSessionID = session.id
@@ -523,32 +654,8 @@ final class AppModel: ObservableObject {
                         "session_id": session.id.uuidString,
                         "profile_id": launchProfile.id.uuidString,
                         "terminal_window_id": String(launchResult.windowID),
-                        "terminal_tab_index": String(launchResult.tabIndex)
-                    ],
-                    flushImmediately: true
-                )
-            } catch {
-                let session = ManagedSession.make(
-                    origin: .appLaunched,
-                    profile: launchProfile,
-                    displayName: preparation.sessionName,
-                    command: preparation.shellCommand,
-                    status: .failed,
-                    errorMessage: error.localizedDescription,
-                    summary: automationPlan.summaryPlaceholder,
-                    summaryStatus: .placeholder,
-                    canSendCommands: false,
-                    canTerminate: false
-                )
-                sessions.insert(session, at: 0)
-                selectedSessionID = session.id
-                errorMessage = error.localizedDescription
-                analyticsService.track(
-                    name: "session_launch_failed",
-                    properties: [
-                        "profile_id": launchProfile.id.uuidString,
-                        "session_id": session.id.uuidString,
-                        "error_message": error.localizedDescription
+                        "terminal_tab_index": String(launchResult.tabIndex),
+                        "cli_kind": launchProfile.cliKind.rawValue
                     ],
                     flushImmediately: true
                 )
@@ -575,12 +682,13 @@ final class AppModel: ObservableObject {
             properties: [
                 "session_id": sessions[index].id.uuidString,
                 "source": "managed",
-                "sync_to_terminal_success": syncSucceeded ? "true" : "false"
+                "sync_to_terminal_success": syncSucceeded ? "true" : "false",
+                "cli_kind": sessions[index].cliKind.rawValue
             ],
             flushImmediately: true
         )
         if syncSucceeded {
-            sessions[index].claudeSessionName = newName
+            sessions[index].sessionName = newName
             sessions[index].errorMessage = nil
         } else {
             sessions[index].errorMessage = "改名未同步到终端标题。"
@@ -598,7 +706,8 @@ final class AppModel: ObservableObject {
             properties: [
                 "session_id": sessions[index].id.uuidString,
                 "source": "managed",
-                "pinned": pinned ? "true" : "false"
+                "pinned": pinned ? "true" : "false",
+                "cli_kind": sessions[index].cliKind.rawValue
             ]
         )
         touchManagedSession(at: index)
@@ -611,7 +720,8 @@ final class AppModel: ObservableObject {
             name: "session_deleted_or_hidden",
             properties: [
                 "session_id": deletedSession.id.uuidString,
-                "source": "managed"
+                "source": "managed",
+                "cli_kind": deletedSession.cliKind.rawValue
             ],
             flushImmediately: true
         )
@@ -624,20 +734,29 @@ final class AppModel: ObservableObject {
 
     func reopenSession(_ sessionID: ManagedSession.ID) {
         guard let session = sessions.first(where: { $0.id == sessionID }) else { return }
-        guard let profileID = session.profileID,
-              profiles.contains(where: { $0.id == profileID }) else {
-            errorMessage = "找不到原配置，无法重新打开。"
+        guard let storedSessionID = session.sessionID else {
+            errorMessage = "当前会话没有可恢复的会话 ID。"
             return
         }
         analyticsService.track(
             name: "session_reopen",
             properties: [
                 "session_id": session.id.uuidString,
-                "source": "managed"
+                "source": "managed",
+                "cli_kind": session.cliKind.rawValue
             ],
             flushImmediately: true
         )
-        launch(profileID: profileID, count: 1)
+        do {
+            _ = try launchCoordinator.resumeInTerminal(
+                cliKind: session.cliKind,
+                cwd: session.workingDirectory,
+                sessionID: storedSessionID,
+                sessionName: session.displayName
+            )
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
     func updateSelectedSessionNotes(_ notes: String) {
@@ -672,7 +791,7 @@ final class AppModel: ObservableObject {
             commandPreview = ""
             return
         }
-        let previewProfile = profileWithResolvedBatchCount(profile)
+        let previewProfile = profileWithResolvedBatchCount(Self.normalizedProfile(profile))
         commandPreview = launchCoordinator.prepareLaunches(for: previewProfile).first?.shellCommand ?? ""
     }
 
@@ -689,8 +808,8 @@ final class AppModel: ObservableObject {
         let newName = name.nonEmpty(or: fallbackTitle)
 
         var syncSucceeded = false
-        if let liveSession = claudeSessionDiscovery.discoverLiveSessions().first(where: { $0.sessionID == session.sessionID || $0.id == session.id }),
-           let tty = liveSession.tty,
+        if session.isLive,
+           let tty = session.tty,
            let terminalTarget = launchCoordinator.findTerminalTarget(forTTY: tty) {
             do {
                 try launchCoordinator.updateTerminalTitle(newName, windowID: terminalTarget.windowID, tabIndex: terminalTarget.tabIndex)
@@ -710,13 +829,14 @@ final class AppModel: ObservableObject {
             properties: [
                 "session_id": sessionID,
                 "source": "discovered",
-                "sync_to_terminal_success": syncSucceeded ? "true" : "false"
+                "sync_to_terminal_success": syncSucceeded ? "true" : "false",
+                "cli_kind": session.cliKind.rawValue
             ],
             flushImmediately: true
         )
 
         if !syncSucceeded {
-            errorMessage = "改名未同步到 Claude。"
+            errorMessage = "改名未同步到终端。"
         }
     }
 
@@ -727,14 +847,16 @@ final class AppModel: ObservableObject {
     }
 
     private func terminateAndHideDiscoveredSession(sessionID: String) {
-        if let liveSession = claudeSessionDiscovery.discoverLiveSessions().first(where: { $0.sessionID == sessionID || $0.id == sessionID }) {
-            let terminated = launchCoordinator.terminateProcess(pid: liveSession.pid)
+        if let liveSession = discoveredSessions.first(where: { $0.id == sessionID }),
+           let pid = liveSession.pid {
+            let terminated = launchCoordinator.terminateProcess(pid: pid)
             if terminated {
                 analyticsService.track(
                     name: "session_terminated",
                     properties: [
                         "session_id": sessionID,
-                        "source": "discovered"
+                        "source": "discovered",
+                        "cli_kind": liveSession.cliKind.rawValue
                     ],
                     flushImmediately: true
                 )
@@ -766,12 +888,13 @@ final class AppModel: ObservableObject {
             name: "session_reopen",
             properties: [
                 "session_id": sessionID,
-                "source": "discovered"
+                "source": "discovered",
+                "cli_kind": session.cliKind.rawValue
             ],
             flushImmediately: true
         )
         do {
-            _ = try launchCoordinator.resumeInTerminal(cwd: session.cwd, sessionID: session.sessionID, sessionName: sessionName)
+            _ = try launchCoordinator.resumeInTerminal(cliKind: session.cliKind, cwd: session.cwd, sessionID: session.sessionID, sessionName: sessionName)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -791,7 +914,8 @@ final class AppModel: ObservableObject {
                 name: "session_terminated",
                 properties: [
                     "session_id": sessions[index].id.uuidString,
-                    "source": "managed"
+                    "source": "managed",
+                    "cli_kind": sessions[index].cliKind.rawValue
                 ],
                 flushImmediately: true
             )
@@ -818,7 +942,6 @@ final class AppModel: ObservableObject {
         }
     }
 
-
     private func persistDiscoveredSessionMetadata() {
         do {
             try sessionStore.saveDiscoveredSessionMetadata(discoveredSessionMetadata)
@@ -832,6 +955,22 @@ final class AppModel: ObservableObject {
             return "discovered-\(sessionID)"
         }
         return nil
+    }
+
+    func setSelectedSessionFilterCLI(_ cliKind: CLIKind?) {
+        selectedSessionFilterCLI = cliKind
+        let visibleIDs = Set(sessionListItems.map(\.id))
+        let managedListID = selectedSessionID.map { "managed-\($0.uuidString)" }
+        let discoveredListID = selectedDiscoveredSessionID.map { "discovered-\($0)" }
+        let currentListID = managedListID ?? discoveredListID
+        if let currentListID, !visibleIDs.contains(currentListID) {
+            selectedSessionID = nil
+            selectedDiscoveredSessionID = nil
+            selectedTranscriptMessages = []
+            if let firstItem = sessionListItems.first {
+                selectSessionListItem(firstItem)
+            }
+        }
     }
 
     private func stableSessionListItemSort(lhs: SessionListItem, rhs: SessionListItem) -> Bool {
@@ -865,6 +1004,10 @@ final class AppModel: ObservableObject {
         launchCountInput = String(max(selectedProfile?.batchCount ?? 1, 1))
     }
 
+    private func syncSelectedLaunchTerminalAppFromSelectedProfile() {
+        selectedLaunchTerminalApp = selectedProfile?.launchTerminalApp ?? .terminal
+    }
+
     private func touchManagedSession(at index: Int) {
         let now = Date()
         sessions[index].updatedAt = now
@@ -874,7 +1017,7 @@ final class AppModel: ObservableObject {
 
     private func persistProfiles() {
         profileSaveStatus = .saving
-        let snapshot = profiles
+        let snapshot = profiles.map(Self.normalizedProfile)
         profilePersistenceQueue.async { [profileStore] in
             do {
                 try profileStore.saveProfiles(snapshot)
@@ -927,6 +1070,34 @@ final class AppModel: ObservableObject {
         return lhs.createdAt > rhs.createdAt
     }
 
+    private func resolvedManagedSessionIsLive(_ session: ManagedSession) -> Bool {
+        if session.status == .failed || session.status == .exited || session.status == .archived {
+            return false
+        }
+        if session.pid == nil && (session.terminalWindowID == nil || session.terminalWindowID == 0) {
+            return false
+        }
+        return session.status == .running || session.status == .launching
+    }
+
+    private func resolvedManagedSessionStatusText(_ session: ManagedSession) -> String {
+        if !resolvedManagedSessionIsLive(session) {
+            return session.status == .failed ? "启动失败" : "已结束"
+        }
+        switch session.status {
+        case .running:
+            return "运行中"
+        case .launching:
+            return "启动中"
+        case .failed:
+            return "启动失败"
+        case .exited:
+            return "已结束"
+        case .archived:
+            return "已归档"
+        }
+    }
+
     private func uniqueProfileName(base: String, excluding profileID: LaunchProfile.ID? = nil) -> String {
         let normalizedBase = base.trimmingCharacters(in: .whitespacesAndNewlines).nonEmpty(or: "新配置")
         var candidate = normalizedBase
@@ -938,5 +1109,58 @@ final class AppModel: ObservableObject {
             index += 1
         }
         return candidate
+    }
+
+    private func syncSelectedProfileToCapabilities() {
+        guard let selectedProfileIndex else { return }
+        profiles[selectedProfileIndex] = Self.normalizedProfile(profiles[selectedProfileIndex])
+    }
+
+    private static func normalizedProfile(_ profile: LaunchProfile) -> LaunchProfile {
+        var profile = profile
+        let capabilities = profile.cliKind.capabilities
+
+        switch profile.cliKind {
+        case .gemini:
+            let legacyGeminiModels = [
+                "gemini-2.5-pro",
+                "gemini-2.5-flash",
+                "gemini-2.5-flash-lite"
+            ]
+            if legacyGeminiModels.contains(profile.model) {
+                profile.model = profile.cliKind.defaultModel
+            }
+        case .codex:
+            let legacyCodexModels = [
+                "gpt-5-codex",
+                "gpt-5",
+                "o3"
+            ]
+            if legacyCodexModels.contains(profile.model) {
+                profile.model = profile.cliKind.defaultModel
+            }
+        case .claude:
+            break
+        }
+
+        if !capabilities.modelOptions.contains(where: { $0.id == profile.model }) {
+            profile.model = profile.cliKind.defaultModel
+        }
+        if !capabilities.permissionOptions.contains(profile.permissionMode) {
+            profile.permissionMode = capabilities.permissionOptions.first ?? .default
+        }
+        if !capabilities.thinkingDepthOptions.contains(profile.thinkingDepth) {
+            profile.thinkingDepth = capabilities.thinkingDepthOptions.first ?? .auto
+        }
+        if !capabilities.supportsLaunchMode {
+            profile.launchMode = .standard
+        }
+        if !capabilities.supportsAppendSystemPrompt {
+            profile.appendSystemPrompt = ""
+        }
+        if !capabilities.supportsNativeSessionRename {
+            profile.startupRenameEnabled = false
+        }
+        return profile
     }
 }

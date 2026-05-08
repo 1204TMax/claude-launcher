@@ -30,7 +30,7 @@ struct ProfilesWorkspaceView: View {
             Text("Profiles")
                 .font(.launcherTitle)
                 .foregroundStyle(LauncherTheme.primaryText)
-            Text("Manage reusable launch presets with the same minimal system.")
+            Text("Manage reusable multi-CLI launch presets.")
                 .font(.launcherMeta)
                 .foregroundStyle(LauncherTheme.secondaryText)
         }
@@ -83,7 +83,10 @@ struct ProfilesWorkspaceView: View {
     }
 
     private func editor(_ profile: LaunchProfile) -> some View {
-        VStack(spacing: 16) {
+        let capabilities = profile.cliKind.capabilities
+        let modelOptions = LaunchProfile.modelOptions(for: profile.cliKind)
+
+        return VStack(spacing: 16) {
             LauncherSurfaceCard(cornerRadius: 16) {
                 VStack(alignment: .leading, spacing: 14) {
                     fieldLabel("Name")
@@ -96,13 +99,16 @@ struct ProfilesWorkspaceView: View {
                             .buttonStyle(LauncherGhostButtonStyle())
                     }
 
+                    fieldLabel("CLI")
+                    compactMenu(selection: binding(profile, \.cliKind), items: Array(CLIKind.allCases), minWidth: runtimeValueWidth) { $0.displayName }
+
                     fieldLabel("Model")
                     compactMenu(
                         selection: binding(profile, \.model),
-                        items: LaunchProfile.suggestedModels,
+                        items: modelOptions.map(\.id),
                         minWidth: runtimeValueWidth
                     ) { id in
-                        LaunchProfile.modelOptions.first(where: { $0.id == id })?.title ?? id
+                        modelOptions.first(where: { $0.id == id }).map { "\($0.title)（\($0.subtitle)）" } ?? id
                     }
                 }
                 .padding(16)
@@ -112,7 +118,9 @@ struct ProfilesWorkspaceView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     fieldLabel("Runtime")
                     runtimeRow(title: "Permission", value: profile.permissionMode.displayName)
-                    runtimeRow(title: "Launch", value: profile.launchMode.displayName)
+                    if capabilities.supportsLaunchMode {
+                        runtimeRow(title: "Launch", value: profile.launchMode.displayName)
+                    }
                     runtimeRow(title: "Reasoning", value: profile.thinkingDepth.displayName)
 
                     fieldLabel("Default Count")
@@ -133,21 +141,23 @@ struct ProfilesWorkspaceView: View {
 
             LauncherSurfaceCard(cornerRadius: 16) {
                 VStack(alignment: .leading, spacing: 14) {
-                    fieldLabel("Additional Directories")
-                    textField(
-                        text: Binding(
-                            get: { profile.additionalDirectories.joined(separator: ", ") },
-                            set: { value in
-                                appModel.updateSelectedProfile {
-                                    $0.additionalDirectories = value
-                                        .split(separator: ",")
-                                        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                                        .filter { !$0.isEmpty }
+                    if capabilities.supportsAdditionalDirectories {
+                        fieldLabel("Additional Directories")
+                        textField(
+                            text: Binding(
+                                get: { profile.additionalDirectories.joined(separator: ", ") },
+                                set: { value in
+                                    appModel.updateSelectedProfile {
+                                        $0.additionalDirectories = value
+                                            .split(separator: ",")
+                                            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                                            .filter { !$0.isEmpty }
+                                    }
                                 }
-                            }
-                        ),
-                        placeholder: "dir1, dir2"
-                    )
+                            ),
+                            placeholder: "dir1, dir2"
+                        )
+                    }
 
                     fieldLabel("Rename Template")
                     textField(text: binding(profile, \.startupRenameTemplate), placeholder: "{{profile}} {{index}}")
@@ -155,8 +165,10 @@ struct ProfilesWorkspaceView: View {
                     fieldLabel("Startup Message")
                     textEditor(text: binding(profile, \.startupMessage), minHeight: 90)
 
-                    fieldLabel("System Prompt")
-                    textEditor(text: binding(profile, \.appendSystemPrompt), minHeight: 90)
+                    if capabilities.supportsAppendSystemPrompt {
+                        fieldLabel("System Prompt")
+                        textEditor(text: binding(profile, \.appendSystemPrompt), minHeight: 90)
+                    }
                 }
                 .padding(16)
             }

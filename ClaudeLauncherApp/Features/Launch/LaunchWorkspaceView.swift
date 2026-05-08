@@ -68,6 +68,7 @@ struct LaunchWorkspaceView: View {
     @State private var dropTargetProfileID: LaunchProfile.ID?
 
     private var selectedProfile: LaunchProfile? { appModel.selectedProfile }
+    private var selectedCapabilities: CLICapabilities { appModel.selectedCapabilities }
     private let trailingControlWidth: CGFloat = 168
 
     var body: some View {
@@ -151,7 +152,7 @@ struct LaunchWorkspaceView: View {
             Text("启动设置")
                 .font(.launcherTitle)
                 .foregroundStyle(LauncherTheme.primaryText)
-            Text("设置 Claude Code 启动参数")
+            Text("设置 Claude、Gemini 或 Codex 的启动参数")
                 .font(.launcherMeta)
                 .foregroundStyle(LauncherTheme.secondaryText)
         }
@@ -171,6 +172,8 @@ struct LaunchWorkspaceView: View {
         LauncherSurfaceCard(cornerRadius: 16) {
             VStack(spacing: 0) {
                 configurationRow
+                inlineDivider
+                cliRow
                 inlineDivider
                 modelRow
             }
@@ -217,13 +220,23 @@ struct LaunchWorkspaceView: View {
         }
     }
 
-    private var modelRow: some View {
-        settingLine(title: "模型") {
+    private var cliRow: some View {
+        settingLine(title: "CLI") {
             compactMenu(selection: Binding(
-                get: { selectedProfile?.model ?? LaunchProfile.modelOptions[1].id },
+                get: { selectedProfile?.cliKind ?? .claude },
+                set: { value in appModel.setSelectedCLIKind(value) }
+            ), items: Array(CLIKind.allCases), minWidth: 196) { $0.displayName }
+        }
+    }
+
+    private var modelRow: some View {
+        let modelOptions = LaunchProfile.modelOptions(for: selectedProfile?.cliKind ?? .claude)
+        return settingLine(title: "模型") {
+            compactMenu(selection: Binding(
+                get: { selectedProfile?.model ?? (selectedProfile?.cliKind.defaultModel ?? CLIKind.claude.defaultModel) },
                 set: { value in appModel.updateSelectedProfile { $0.model = value } }
-            ), items: LaunchProfile.modelOptions.map(\.id), minWidth: 196) { id in
-                if let option = LaunchProfile.modelOptions.first(where: { $0.id == id }) {
+            ), items: modelOptions.map(\.id), minWidth: 196) { id in
+                if let option = modelOptions.first(where: { $0.id == id }) {
                     return "\(option.title)（\(option.subtitle)）"
                 }
                 return id
@@ -312,9 +325,62 @@ struct LaunchWorkspaceView: View {
     }
 
     private var launchButtonBar: some View {
-        mergedLaunchButton
-            .frame(maxWidth: 408)
-            .frame(maxWidth: .infinity)
+        VStack(spacing: 10) {
+            HStack(spacing: 10) {
+                launchTerminalSelector
+                mergedLaunchButton
+            }
+            if appModel.selectedLaunchTerminalApp == .ghostty {
+                ghosttyLaunchBehaviorSelector
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .frame(maxWidth: 408)
+        .frame(maxWidth: .infinity)
+    }
+
+    private var launchTerminalSelector: some View {
+        compactMenu(selection: Binding(
+            get: { appModel.selectedLaunchTerminalApp },
+            set: { value in appModel.setSelectedLaunchTerminalApp(value) }
+        ), items: Array(LaunchTerminalApp.allCases), minWidth: 112) { $0.displayName }
+            .frame(width: 124)
+    }
+
+    private var ghosttyLaunchBehaviorSelector: some View {
+        HStack(spacing: 0) {
+            ForEach(GhosttyLaunchBehavior.allCases) { behavior in
+                Button {
+                    appModel.setSelectedGhosttyLaunchBehavior(behavior)
+                } label: {
+                    Text(behavior.displayName)
+                        .font(.launcherMeta)
+                        .foregroundStyle(selectedGhosttyLaunchBehavior == behavior ? LauncherTheme.primaryText : LauncherTheme.secondaryText)
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity, minHeight: 34)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .background {
+                    if selectedGhosttyLaunchBehavior == behavior {
+                        RoundedRectangle(cornerRadius: 9, style: .continuous)
+                            .fill(Color.white)
+                            .shadow(color: .black.opacity(0.06), radius: 4, x: 0, y: 1)
+                    }
+                }
+            }
+        }
+        .padding(3)
+        .background(LauncherTheme.softFill.opacity(0.58))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(LauncherTheme.border.opacity(0.86), lineWidth: 1)
+        )
+    }
+
+    private var selectedGhosttyLaunchBehavior: GhosttyLaunchBehavior {
+        selectedProfile?.ghosttyLaunchBehavior ?? .mergeIntoExistingWindow
     }
 
     private var mergedLaunchButton: some View {
@@ -395,8 +461,10 @@ struct LaunchWorkspaceView: View {
         LauncherSurfaceCard(cornerRadius: 16) {
             VStack(spacing: 0) {
                 workdirSection
-                divider
-                autoRenameSection
+                if selectedCapabilities.supportsNativeSessionRename {
+                    divider
+                    autoRenameSection
+                }
                 divider
                 bringFilesSection
                 divider
@@ -457,18 +525,18 @@ struct LaunchWorkspaceView: View {
     }
 
     private var thinkingDepthSection: some View {
-        settingLine(title: "思考深度", help: "思考越深入，回复时间越长，消耗token越多。") {
+        settingLine(title: "思考深度", help: "仅在当前 CLI 支持时可切换。") {
             compactMenu(selection: Binding(
                 get: { selectedProfile?.thinkingDepth ?? .auto },
                 set: { value in appModel.updateSelectedProfile { $0.thinkingDepth = value } }
-            ), items: ThinkingDepth.launchOptions, minWidth: trailingControlWidth) { $0.displayName }
+            ), items: appModel.selectedThinkingDepthOptions, minWidth: trailingControlWidth) { $0.displayName }
         }
     }
 
     private var permissionSection: some View {
         settingLine(title: "权限") {
             if let profile = selectedProfile {
-                compactMenu(selection: binding(profile, \.permissionMode), items: PermissionMode.launchOptions, minWidth: trailingControlWidth) { $0.displayName }
+                compactMenu(selection: binding(profile, \.permissionMode), items: appModel.selectedPermissionOptions, minWidth: trailingControlWidth) { $0.displayName }
             }
         }
     }
@@ -789,44 +857,6 @@ struct LaunchWorkspaceView: View {
         }
         .menuStyle(.button)
         .menuIndicator(.hidden)
-    }
-
-    private func stepperButton(systemName: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: systemName)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(LauncherTheme.secondaryText)
-                .frame(width: 28, height: 28)
-                .background(Color.white)
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .shadow(color: .black.opacity(0.06), radius: 4, x: 0, y: 1)
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func textEditor(text: Binding<String>, minHeight: CGFloat, placeholder: String) -> some View {
-        TextEditor(text: text)
-            .font(.launcherBody)
-            .foregroundStyle(LauncherTheme.primaryText)
-            .scrollContentBackground(.hidden)
-            .frame(minHeight: minHeight)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
-            .background(LauncherTheme.cardBackground)
-            .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .stroke(LauncherTheme.border.opacity(0.85), lineWidth: 1)
-            )
-            .overlay(alignment: .topLeading) {
-                if text.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Text(placeholder)
-                        .font(.launcherBody)
-                        .foregroundStyle(LauncherTheme.tertiaryText.opacity(0.55))
-                        .padding(.top, 14)
-                        .padding(.leading, 14)
-                        .allowsHitTesting(false)
-                }
-            }
     }
 
     private func binding<Value>(_ profile: LaunchProfile, _ keyPath: WritableKeyPath<LaunchProfile, Value>) -> Binding<Value> {

@@ -17,8 +17,8 @@ class AnalyticsQueueStore {
     }
 
     func loadEvents() -> [AnalyticsEvent] {
-        let url = storageURL()
-        guard fileManager.fileExists(atPath: url.path) else {
+        let candidateURLs = [storageURL(appName: "CClauncher"), storageURL(appName: "ClaudeLauncher")]
+        guard let url = candidateURLs.first(where: { fileManager.fileExists(atPath: $0.path) }) else {
             return []
         }
 
@@ -38,12 +38,12 @@ class AnalyticsQueueStore {
         try data.write(to: url, options: .atomic)
     }
 
-    private func storageURL() -> URL {
-        applicationSupportDirectory().appendingPathComponent("analytics-queue.json")
+    private func storageURL(appName: String = "CClauncher") -> URL {
+        applicationSupportDirectory(appName: appName).appendingPathComponent("analytics-queue.json")
     }
 
-    private func applicationSupportDirectory() -> URL {
+    private func applicationSupportDirectory(appName: String) -> URL {
         let base = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        return base.appendingPathComponent("ClaudeLauncher", isDirectory: true)
+        return base.appendingPathComponent(appName, isDirectory: true)
     }
 }

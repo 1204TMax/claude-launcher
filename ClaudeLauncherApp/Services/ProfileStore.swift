@@ -15,8 +15,8 @@ final class ProfileStore {
     }
 
     func loadProfiles() -> [LaunchProfile] {
-        let url = storageURL()
-        guard fileManager.fileExists(atPath: url.path) else {
+        let candidateURLs = [storageURL(appName: "CClauncher"), storageURL(appName: "ClaudeLauncher")]
+        guard let url = candidateURLs.first(where: { fileManager.fileExists(atPath: $0.path) }) else {
             return [LaunchProfile.makeDefault()]
         }
 
@@ -41,18 +41,18 @@ final class ProfileStore {
         try data.write(to: destination, options: .atomic)
     }
 
-    private func storageURL() -> URL {
-        applicationSupportDirectory()
+    private func storageURL(appName: String = "CClauncher") -> URL {
+        applicationSupportDirectory(appName: appName)
             .appendingPathComponent("profiles.json")
     }
 
     func logsDirectory() -> URL {
-        applicationSupportDirectory()
+        applicationSupportDirectory(appName: "CClauncher")
             .appendingPathComponent("logs", isDirectory: true)
     }
 
-    private func applicationSupportDirectory() -> URL {
+    private func applicationSupportDirectory(appName: String) -> URL {
         let base = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        return base.appendingPathComponent("ClaudeLauncher", isDirectory: true)
+        return base.appendingPathComponent(appName, isDirectory: true)
     }
 }

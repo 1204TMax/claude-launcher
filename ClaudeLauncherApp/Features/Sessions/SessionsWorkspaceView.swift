@@ -99,6 +99,8 @@ struct SessionsWorkspaceView: View {
                     }
                     .padding(.horizontal, 4)
 
+                    sessionFilterBar
+
                     if appModel.isDiscoveringSessions && filteredSessions.isEmpty {
                         loadingListCard
                     } else if filteredSessions.isEmpty {
@@ -134,13 +136,39 @@ struct SessionsWorkspaceView: View {
         }
     }
 
+    private var sessionFilterBar: some View {
+        HStack(spacing: 8) {
+            filterChip(title: "全部", cliKind: nil)
+            filterChip(title: "Claude", cliKind: .claude)
+            filterChip(title: "Gemini", cliKind: .gemini)
+            filterChip(title: "Codex", cliKind: .codex)
+        }
+        .padding(.horizontal, 4)
+    }
+
+    private func filterChip(title: String, cliKind: CLIKind?) -> some View {
+        let isSelected = appModel.selectedSessionFilterCLI == cliKind
+        return Button {
+            appModel.setSelectedSessionFilterCLI(cliKind)
+        } label: {
+            Text(title)
+                .font(.launcherMeta)
+                .foregroundStyle(isSelected ? Color.white : LauncherTheme.primaryText)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(isSelected ? LauncherTheme.ctaBlack : LauncherTheme.softFill)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
     private var emptyListCard: some View {
         LauncherSurfaceCard(cornerRadius: 14) {
             VStack(alignment: .leading, spacing: 6) {
                 Text("暂无会话")
                     .font(.launcherBodyStrong)
                     .foregroundStyle(LauncherTheme.primaryText)
-                Text("本机 Claude Code 会话会显示在这里。")
+                Text("本机 Claude、Gemini、Codex 会话会显示在这里。")
                     .font(.launcherMeta)
                     .foregroundStyle(LauncherTheme.secondaryText)
             }
@@ -203,14 +231,16 @@ struct SessionsWorkspaceView: View {
     private var contentPane: some View {
         LauncherSurfaceCard(cornerRadius: 18) {
             Group {
-                if appModel.selectedDiscoveredSession != nil {
+                if let managedSession = appModel.selectedSession {
+                    managedSessionContent(managedSession)
+                } else if let session = appModel.selectedDiscoveredSession {
                     ZStack(alignment: .top) {
                         VStack(spacing: 0) {
                             ScrollViewReader { proxy in
                                 ScrollView {
                                     LazyVStack(spacing: 18) {
                                         if appModel.selectedTranscriptMessages.isEmpty {
-                                            emptyContent
+                                            emptyContent(note: session.transcriptAvailabilityNote)
                                         } else {
                                             ForEach(appModel.selectedTranscriptMessages) { message in
                                                 contentMessageCard(message)
@@ -262,7 +292,7 @@ struct SessionsWorkspaceView: View {
                         Text("选择一个会话")
                             .font(.launcherBodyStrong)
                             .foregroundStyle(LauncherTheme.primaryText)
-                        Text("右侧只展示该会话的真实对话内容。")
+                        Text("右侧只展示该会话当前可读取的真实内容。")
                             .font(.launcherMeta)
                             .foregroundStyle(LauncherTheme.secondaryText)
                     }
@@ -272,21 +302,70 @@ struct SessionsWorkspaceView: View {
         }
     }
 
-    private var emptyContent: some View {
+    private func managedSessionContent(_ session: ManagedSession) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(session.displayName)
+                        .font(.launcherBodyStrong)
+                        .foregroundStyle(LauncherTheme.primaryText)
+                    Text(session.summary.nonEmpty(or: "当前会话由应用内直接启动，左侧历史列表会立即更新。"))
+                        .font(.launcherMeta)
+                        .foregroundStyle(LauncherTheme.secondaryText)
+                }
+
+                VStack(alignment: .leading, spacing: 10) {
+                    sessionMetaRow("CLI", session.cliKind.displayName)
+                    sessionMetaRow("模型", session.model)
+                    sessionMetaRow("目录", session.workingDirectory)
+                    sessionMetaRow("状态", session.status.displayName)
+                }
+
+                LauncherSurfaceCard(cornerRadius: 14) {
+                    Text(session.command)
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundStyle(LauncherTheme.primaryText)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(16)
+                }
+            }
+            .padding(28)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+        }
+    }
+
+    private func sessionMetaRow(_ title: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.launcherMini)
+                .foregroundStyle(LauncherTheme.tertiaryText)
+            Text(value)
+                .font(.launcherBody)
+                .foregroundStyle(LauncherTheme.primaryText)
+                .textSelection(.enabled)
+        }
+    }
+
+    private func emptyContent(note: String?) -> some View {
         VStack(spacing: 8) {
             Text("暂无可展示的对话内容")
                 .font(.launcherBodyStrong)
                 .foregroundStyle(LauncherTheme.primaryText)
-            Text("当前 transcript 中没有可直接渲染的用户/助手文本消息。")
+            Text(note ?? "当前 transcript 中没有可直接渲染的消息。")
                 .font(.launcherMeta)
                 .foregroundStyle(LauncherTheme.secondaryText)
         }
         .frame(maxWidth: .infinity, minHeight: 240)
     }
 
-    private func contentMessageCard(_ message: ClaudeTranscriptMessage) -> some View {
+    private func contentMessageCard(_ message: TranscriptMessage) -> some View {
         let isUser = message.role == .user
-        return VStack(alignment: isUser ? .trailing : .leading, spacing: 10) {
+        let isSystem = message.role == .system
+        let background: Color = isSystem ? LauncherTheme.softFill.opacity(0.8) : (isUser ? LauncherTheme.blueSoft.opacity(0.9) : Color.white)
+        let alignment: HorizontalAlignment = isUser ? .trailing : .leading
+
+        return VStack(alignment: alignment, spacing: 10) {
             Text(message.text)
                 .font(.launcherBody)
                 .foregroundStyle(LauncherTheme.primaryText)
@@ -295,7 +374,7 @@ struct SessionsWorkspaceView: View {
                 .padding(.horizontal, 20)
                 .padding(.vertical, 18)
                 .frame(maxWidth: 680, alignment: isUser ? .trailing : .leading)
-                .background(isUser ? LauncherTheme.blueSoft.opacity(0.9) : Color.white)
+                .background(background)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -446,6 +525,8 @@ private struct SessionRowView: View {
                         .font(.launcherBodyStrong)
                         .foregroundStyle(LauncherTheme.primaryText)
                         .lineLimit(1)
+
+                    LauncherChip(text: item.cliKind.displayName)
 
                     if item.isPinned {
                         LauncherChip(text: "置顶")

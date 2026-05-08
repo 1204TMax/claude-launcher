@@ -8,19 +8,16 @@ protocol SecretStore {
 }
 
 final class KeychainService: SecretStore {
+    private let primaryService = "CClauncherGateway"
+    private let legacyService = "ClaudeLauncherGateway"
+
     func saveSecret(_ value: String, for key: String) throws {
         let data = Data(value.utf8)
-        let query: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: "ClaudeLauncherGateway",
-            kSecAttrAccount: key
-        ]
-
-        SecItemDelete(query as CFDictionary)
+        SecItemDelete(query(for: key, service: primaryService) as CFDictionary)
 
         let addQuery: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
-            kSecAttrService: "ClaudeLauncherGateway",
+            kSecAttrService: primaryService,
             kSecAttrAccount: key,
             kSecValueData: data
         ]
@@ -32,29 +29,30 @@ final class KeychainService: SecretStore {
     }
 
     func loadSecret(for key: String) -> String? {
-        let query: [CFString: Any] = [
+        loadSecret(for: key, service: primaryService) ?? loadSecret(for: key, service: legacyService)
+    }
+
+    func deleteSecret(for key: String) {
+        SecItemDelete(query(for: key, service: primaryService) as CFDictionary)
+        SecItemDelete(query(for: key, service: legacyService) as CFDictionary)
+    }
+
+    private func loadSecret(for key: String, service: String) -> String? {
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(query(for: key, service: service) as CFDictionary, &result)
+        guard status == errSecSuccess, let data = result as? Data else {
+            return nil
+        }
+        return String(data: data, encoding: .utf8)
+    }
+
+    private func query(for key: String, service: String) -> [CFString: Any] {
+        [
             kSecClass: kSecClassGenericPassword,
-            kSecAttrService: "ClaudeLauncherGateway",
+            kSecAttrService: service,
             kSecAttrAccount: key,
             kSecReturnData: true,
             kSecMatchLimit: kSecMatchLimitOne
         ]
-
-        var result: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-        guard status == errSecSuccess, let data = result as? Data else {
-            return nil
-        }
-
-        return String(data: data, encoding: .utf8)
-    }
-
-    func deleteSecret(for key: String) {
-        let query: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: "ClaudeLauncherGateway",
-            kSecAttrAccount: key
-        ]
-        SecItemDelete(query as CFDictionary)
     }
 }
